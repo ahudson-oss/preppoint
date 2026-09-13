@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Function or not a function?</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 18px;
+    background: #f8fafc;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .back {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2563eb;
+    text-decoration: none;
+    margin-bottom: 14px;
+  }
+  .back:hover { text-decoration: underline; }
+  h1 { font-size: 19px; font-weight: 650; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { margin: 0 0 12px; font-size: 14px; color: #64748b; min-height: 20px; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .btn {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 15px;
+    min-height: 44px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    border-radius: 8px;
+    color: #0f172a;
+    cursor: pointer;
+  }
+  .btn:hover { background: #f1f5f9; }
+  .btn:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+  .btn.active { background: #2563eb; border-color: #2563eb; color: #ffffff; }
+  .btn.active:hover { background: #1d4ed8; }
+
+  .board {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 6px;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .verdict {
+    margin-top: 12px;
+    border: 1px solid #e2e8f0;
+    border-left-width: 6px;
+    border-radius: 10px;
+    padding: 13px 15px;
+    background: #ffffff;
+  }
+  .headline { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .reason { font-size: 14.5px; line-height: 1.55; color: #334155; }
+  .reason .note {
+    display: block;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+    color: #475569;
+  }
+
+  #reset { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; All tools</a>
+
+  <h1>Function or not a function?</h1>
+  <p class="sub" id="hint"></p>
+
+  <div class="presets">
+    <button class="btn" type="button" data-mode="points">Draggable points</button>
+    <button class="btn" type="button" data-mode="circle">Circle</button>
+    <button class="btn" type="button" data-mode="sine">Sine curve</button>
+    <button class="btn" type="button" data-mode="parabola">y = x&sup2;</button>
+  </div>
+
+  <div class="board">
+    <svg id="plane" viewBox="0 0 560 560" xmlns="http://www.w3.org/2000/svg" aria-label="Coordinate grid with a graph"></svg>
+  </div>
+
+  <div class="verdict" id="verdict"></div>
+
+  <button class="btn" id="reset" type="button">Reset points</button>
+</div>
+
+<script>
+(function () {
+  var SVG = document.getElementById('plane');
+  var HINT = document.getElementById('hint');
+  var RESET = document.getElementById('reset');
+  var NS = 'http://www.w3.org/2000/svg';
+
+  var OX = 280, OY = 280, U = 40, MIN = -6, MAX = 6;
+
+  var BLUE = '#1d6fd1';
+  var RED = '#c2261a';
+  var GREEN = '#15803d';
+
+  // Opens as a function that already repeats an OUTPUT (y = -3 twice).
+  // That is the case students most often call "not a function" by mistake.
+  var START = [
+    { x: -4, y: 2 },
+    { x: -2, y: -3 },
+    { x: 0, y: 1 },
+    { x: 2, y: -3 },
+    { x: 4, y: 4 }
+  ];
+
+  var mode = 'points';
+  var pts = START.map(function (p) { return { x: p.x, y: p.y }; });
+  var drag = null;
+
+  function sx(x) { return OX + x * U; }
+  function sy(y) { return OY - y * U; }
+  function neg(s) { return String(s).replace(/-/g, '\u2212'); }
+  function fmt(n) { return neg(Math.round(n * 10) / 10); }
+
+  function el(tag, attrs) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) { n.setAttribute(k, attrs[k]); }
+    return n;
+  }
+
+  /* ---------- preset curves ----------
+     Each is just a dense polyline, so the same crossing analysis that
+     handles the draggable points handles these with no special cases. */
+
+  function buildCircle() {
+    var r = 4, arr = [], N = 120;
+    for (var i = 0; i <= N; i++) {
+      var t = 2 * Math.PI * i / N;
+      arr.push({ x: r * Math.cos(t), y: r * Math.sin(t) });
+    }
+    return arr;
+  }
+
+  function buildSine() {
+    var arr = [], N = 240;
+    for (var i = 0; i <= N; i++) {
+      var x = MIN + (MAX - MIN) * i / N;
+      arr.push({ x: x, y: 4 * Math.sin(Math.PI * x / 3) });
+    }
+    return arr;
+  }
+
+  function buildParabola() {
+    // True y = x squared, clipped to where it still fits on the grid.
+    var arr = [], N = 160, lim = Math.sqrt(MAX);
+    for (var i = 0; i <= N; i++) {
+      var x = -lim + 2 * lim * i / N;
+      arr.push({ x: x, y: x * x });
+    }
+    return arr;
+  }
+
+  var CURVES = { circle: buildCircle(), sine: buildSine(), parabola: buildParabola() };
+
+  var HINTS = {
+    points: 'Drag any point to reshape the graph. Watch what happens when it folds back.',
+    circle: 'A fixed graph. Decide first, then check what the panel says.',
+    sine: 'A fixed graph. Decide first, then check what the panel says.',
+    parabola: 'A fixed graph. Decide first, then check what the panel says.'
+  };
+
+  function path() { return (mode === 'points') ? pts : CURVES[mode]; }
+
+  /* ---------- static grid ---------- */
+  var gGrid = el('g', {});
+  var gArt = el('g', {});
+  SVG.appendChild(gGrid);
+  SVG.appendChild(gArt);
+
+  (function buildGrid() {
+    var i;
+    for (i = MIN; i <= MAX; i++) {
+      gGrid.appendChild(el('line', { x1: sx(i), y1: sy(MIN), x2: sx(i), y2: sy(MAX), stroke: '#e8edf3', 'stroke-width': 1 }));
+      gGrid.appendChild(el('line', { x1: sx(MIN), y1: sy(i), x2: sx(MAX), y2: sy(i), stroke: '#e8edf3', 'stroke-width': 1 }));
+    }
+    gGrid.appendChild(el('line', { x1: sx(MIN), y1: sy(0), x2: sx(MAX), y2: sy(0), stroke: '#94a3b8', 'stroke-width': 2 }));
+    gGrid.appendChild(el('line', { x1: sx(0), y1: sy(MIN), x2: sx(0), y2: sy(MAX), stroke: '#94a3b8', 'stroke-width': 2 }));
+
+    for (i = MIN; i <= MAX; i++) {
+      if (i === 0) continue;
+      var tx = el('text', { x: sx(i), y: sy(0) + 16, 'text-anchor': 'middle', 'font-size': 12, fill: '#94a3b8' });
+      tx.textContent = neg(i);
+      gGrid.appendChild(tx);
+      var ty = el('text', { x: sx(0) - 8, y: sy(i) + 4, 'text-anchor': 'end', 'font-size': 12, fill: '#94a3b8' });
+      ty.textContent = neg(i);
+      gGrid.appendChild(ty);
+    }
+
+    var lx = el('text', { x: sx(MAX) + 4, y: sy(0) - 8, 'font-size': 14, 'font-weight': 700, fill: '#64748b' });
+    lx.textContent = 'x';
+    gGrid.appendChild(lx);
+    var ly = el('text', { x: sx(0) + 9, y: sy(MAX) - 4, 'font-size': 14, 'font-weight': 700, fill: '#64748b' });
+    ly.textContent = 'y';
+    gGrid.appendChild(ly);
+  })();
+
+  /* ---------- the rule ---------- */
+
+  // Segments are built in ORDER, never sorted by x. Sorting would make a
+  // graph incapable of ever failing, which defeats the whole widget.
+  function segments() {
+    var p = path(), s = [];
+    for (var i = 0; i < p.length - 1; i++) { s.push([p[i], p[i + 1]]); }
+    return s;
+  }
+
+  // How many times does the vertical line x = c meet the graph?
+  // Half-open spans [lo, hi) keep a shared vertex from counting twice.
+  function crossingsAtX(c) {
+    var segs = segments(), n = 0;
+    for (var i = 0; i < segs.length; i++) {
+      var a = segs[i][0], b = segs[i][1];
+      if (a.x === b.x) { continue; }
+      var lo = Math.min(a.x, b.x), hi = Math.max(a.x, b.x);
+      if (c >= lo && c < hi) { n++; }
+    }
+    return n;
+  }
+
+  function crossingsAtY(c) {
+    var segs = segments(), n = 0;
+    for (var i = 0; i < segs.length; i++) {
+      var a = segs[i][0], b = segs[i][1];
+      if (a.y === b.y) { continue; }
+      var lo = Math.min(a.y, b.y), hi = Math.max(a.y, b.y);
+      if (c >= lo && c < hi) { n++; }
+    }
+    return n;
+  }
+
+  function analyze() {
+    var segs = segments(), i;
+
+    // A perfectly vertical piece sends one input to a whole range of outputs.
+    var verticalX = null;
+    for (i = 0; i < segs.length; i++) {
+      if (segs[i][0].x === segs[i][1].x && segs[i][0].y !== segs[i][1].y) {
+        verticalX = segs[i][0].x;
+        break;
+      }
+    }
+
+    // Sample across the grid to find where a vertical line hits more than once.
+    var STEP = 0.02, bands = [], open = null, c, n;
+    for (c = MIN; c <= MAX + 1e-9; c += STEP) {
+      n = crossingsAtX(c);
+      if (n >= 2) {
+        if (!open) { open = { from: c, to: c, max: n }; }
+        else { open.to = c; if (n > open.max) open.max = n; }
+      } else if (open) {
+        bands.push(open); open = null;
+      }
+    }
+    if (open) { bands.push(open); }
+
+    var widest = null;
+    for (i = 0; i < bands.length; i++) {
+      if (!widest || (bands[i].to - bands[i].from) > (widest.to - widest.from)) { widest = bands[i]; }
+    }
+
+    // A repeated output is legal, and worth pointing out when it happens.
+    var sharedY = null;
+    for (c = MIN; c <= MAX; c++) {
+      if (crossingsAtY(c) >= 2) { sharedY = c; break; }
+    }
+
+    return {
+      bands: bands, widest: widest, verticalX: verticalX, sharedY: sharedY,
+      isFunction: bands.length === 0 && verticalX === null
+    };
+  }
+
+  /* ---------- drawing ---------- */
+
+  function render() {
+    while (gArt.firstChild) { gArt.removeChild(gArt.firstChild); }
+    var result = analyze();
+    var stroke = result.isFunction ? BLUE : RED;
+    var p = path(), i;
+
+    // Shade the inputs that have more than one output.
+    for (i = 0; i < result.bands.length; i++) {
+      var band = result.bands[i];
+      gArt.appendChild(el('rect', {
+        x: sx(band.from), y: sy(MAX),
+        width: Math.max(3, (band.to - band.from) * U), height: (MAX - MIN) * U,
+        fill: RED, opacity: 0.10
+      }));
+    }
+    if (result.verticalX !== null) {
+      gArt.appendChild(el('line', {
+        x1: sx(result.verticalX), y1: sy(MIN), x2: sx(result.verticalX), y2: sy(MAX),
+        stroke: RED, 'stroke-width': 2, 'stroke-dasharray': '6 5', opacity: 0.85
+      }));
+    }
+
+    var d = '';
+    for (i = 0; i < p.length; i++) {
+      d += (i === 0 ? 'M ' : ' L ') + sx(p[i].x).toFixed(1) + ' ' + sy(p[i].y).toFixed(1);
+    }
+    gArt.appendChild(el('path', {
+      d: d, fill: 'none', stroke: stroke,
+      'stroke-width': 3.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+    }));
+
+    // Handles exist only in points mode; the preset curves are fixed.
+    if (mode === 'points') {
+      for (i = 0; i < pts.length; i++) {
+        gArt.appendChild(el('circle', {
+          cx: sx(pts[i].x), cy: sy(pts[i].y), r: 8.5,
+          fill: '#ffffff', stroke: stroke, 'stroke-width': 3
+        }));
+        var hit = el('circle', { cx: sx(pts[i].x), cy: sy(pts[i].y), r: 30, fill: '#000000', opacity: 0, cursor: 'grab' });
+        hit.setAttribute('data-idx', String(i));
+        gArt.appendChild(hit);
+      }
+
+      if (drag !== null) {
+        var q = pts[drag];
+        var lx = sx(q.x), ly = sy(q.y) - 20;
+        if (ly < 22) { ly = sy(q.y) + 32; }
+        lx = Math.max(48, Math.min(512, lx));
+        var t = el('text', {
+          x: lx, y: ly, 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 700,
+          fill: stroke, stroke: '#ffffff', 'stroke-width': 4, 'stroke-linejoin': 'round'
+        });
+        t.setAttribute('style', 'paint-order:stroke fill');
+        t.textContent = '(' + neg(q.x) + ', ' + neg(q.y) + ')';
+        gArt.appendChild(t);
+      }
+    }
+
+    renderVerdict(result);
+  }
+
+  function renderVerdict(result) {
+    var box = document.getElementById('verdict');
+    var head, reason;
+
+    if (result.isFunction) {
+      box.style.borderLeftColor = GREEN;
+      head = '<div class="headline" style="color:' + GREEN + '">Function</div>';
+      reason = 'No vertical line crosses this graph more than once. Every input has exactly one output.';
+      if (result.sharedY !== null) {
+        reason += '<span class="note">Look closely: the graph reaches y = ' + neg(result.sharedY) +
+          ' more than once. Repeated <b>outputs</b> are allowed. It is repeated <b>inputs</b> that break a function.</span>';
+      }
+    } else {
+      box.style.borderLeftColor = RED;
+      head = '<div class="headline" style="color:' + RED + '">Not a function</div>';
+
+      if (result.verticalX !== null) {
+        reason = 'Part of the graph runs straight up and down at x = ' + neg(result.verticalX) +
+          '. That one input is sent to every output along the vertical piece.';
+      } else {
+        var w = result.widest;
+        var mid = (w.from + w.to) / 2;
+        var n = crossingsAtX(mid);
+        reason = 'At x = ' + fmt(mid) + ' a vertical line crosses the graph ' + n +
+          ' times, so that one input has ' + n + ' outputs.' +
+          ' Every input in the shaded strip, from x = ' + fmt(w.from) + ' to x = ' + fmt(w.to) +
+          ', has the same problem.';
+      }
+    }
+
+    box.innerHTML = head + '<div class="reason">' + reason + '</div>';
+  }
+
+  /* ---------- mode switching ---------- */
+
+  function setMode(next) {
+    mode = next;
+    drag = null;
+    HINT.textContent = HINTS[mode];
+    RESET.style.display = (mode === 'points') ? '' : 'none';
+
+    var btns = document.querySelectorAll('.presets .btn');
+    for (var i = 0; i < btns.length; i++) {
+      var on = btns[i].getAttribute('data-mode') === mode;
+      btns[i].className = on ? 'btn active' : 'btn';
+      btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    render();
+  }
+
+  var presetBtns = document.querySelectorAll('.presets .btn');
+  for (var b = 0; b < presetBtns.length; b++) {
+    presetBtns[b].addEventListener('click', function () {
+      setMode(this.getAttribute('data-mode'));
+    });
+  }
+
+  /* ---------- dragging ---------- */
+
+  function toGrid(evt) {
+    var r = SVG.getBoundingClientRect();
+    var scale = 560 / r.width;
+    return {
+      x: ((evt.clientX - r.left) * scale - OX) / U,
+      y: (OY - (evt.clientY - r.top) * scale) / U
+    };
+  }
+
+  SVG.addEventListener('pointerdown', function (evt) {
+    if (mode !== 'points') return;
+    var t = evt.target;
+    if (!t || !t.getAttribute) return;
+    var idx = t.getAttribute('data-idx');
+    if (idx === null) return;
+    drag = parseInt(idx, 10);
+    if (SVG.setPointerCapture) { SVG.setPointerCapture(evt.pointerId); }
+    render();
+    evt.preventDefault();
+  });
+
+  SVG.addEventListener('pointermove', function (evt) {
+    if (drag === null) return;
+    var g = toGrid(evt);
+    var nx = Math.max(MIN, Math.min(MAX, Math.round(g.x)));
+    var ny = Math.max(MIN, Math.min(MAX, Math.round(g.y)));
+
+    // Neighbours may share an x (that is the lesson) but an identical
+    // coordinate would collapse a segment to nothing.
+    for (var i = 0; i < pts.length; i++) {
+      if (i !== drag && pts[i].x === nx && pts[i].y === ny) return;
+    }
+
+    var cur = pts[drag];
+    if (cur.x === nx && cur.y === ny) return;
+    cur.x = nx; cur.y = ny;
+    render();
+    evt.preventDefault();
+  });
+
+  function endDrag(evt) {
+    if (drag === null) return;
+    drag = null;
+    if (SVG.releasePointerCapture && evt.pointerId !== undefined) {
+      try { SVG.releasePointerCapture(evt.pointerId); } catch (e) {}
+    }
+    render();
+  }
+  SVG.addEventListener('pointerup', endDrag);
+  SVG.addEventListener('pointercancel', endDrag);
+
+  RESET.addEventListener('click', function () {
+    pts = START.map(function (p) { return { x: p.x, y: p.y }; });
+    drag = null;
+    render();
+  });
+
+  setMode('points');
+})();
+</script>
+</body>
+</html>
