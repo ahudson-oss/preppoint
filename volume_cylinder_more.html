@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volume Relationships: Cone, Cylinder, & Sphere (8.G.C.9)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .back {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #2563eb;
+      text-decoration: none;
+      margin-bottom: 14px;
+    }
+
+    .back:hover {
+      text-decoration: underline;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 1040px;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    p.subtitle {
+      font-size: 0.875rem;
+      color: #475569;
+      margin-top: 2px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 860px) {
+      .workspace {
+        grid-template-columns: 1.2fr 0.8fr;
+      }
+    }
+
+    .canvas-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #ffffff;
+      border: 1px solid #94a3b8;
+      border-radius: 8px;
+      padding: 16px;
+      position: relative;
+    }
+
+    svg#plane {
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 4 / 3;
+      user-select: none;
+      background-color: #ffffff;
+    }
+
+    .canvas-label {
+      paint-order: stroke fill;
+      stroke: #ffffff;
+      stroke-width: 3px;
+      stroke-linejoin: round;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .interactive-shape {
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+
+    .interactive-shape:hover {
+      opacity: 0.9;
+    }
+
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-card {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+
+    .segmented-control {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      background-color: #e2e8f0;
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    .seg-btn {
+      min-height: 44px;
+      border: none;
+      background-color: transparent;
+      color: #334155;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .seg-btn.active {
+      background-color: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Action Buttons */
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .btn-action {
+      min-height: 44px;
+      background-color: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #1e293b;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6px 10px;
+    }
+
+    .btn-action:hover {
+      background-color: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .btn-action.poured-cone {
+      background-color: #ffedd5;
+      border-color: #ea580c;
+      color: #9a3412;
+    }
+
+    .btn-action.poured-sphere {
+      background-color: #f3e8ff;
+      border-color: #8b5cf6;
+      color: #6b21a8;
+    }
+
+    .btn-action.poured-cone2 {
+      background-color: #ffedd5;
+      border-color: #ea580c;
+      color: #9a3412;
+    }
+
+    .btn-action.poured-cone3 {
+      background-color: #ffedd5;
+      border-color: #ea580c;
+      color: #9a3412;
+    }
+
+    .btn-reset {
+      min-height: 38px;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .btn-reset:hover {
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 44px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      background-color: #cbd5e1;
+      border-radius: 3px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 24px;
+      width: 24px;
+      border-radius: 50%;
+      background-color: #2563eb;
+      margin-top: -9px;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      text-align: left;
+    }
+
+    .data-table th, .data-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .data-table th {
+      color: #475569;
+      font-weight: 700;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+
+    .tag-cone {
+      background-color: #fed7aa;
+      color: #9a3412;
+    }
+
+    .tag-sphere {
+      background-color: #e9d5ff;
+      color: #6b21a8;
+    }
+
+    .tag-cyl {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    .ratio-pill {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 0.8125rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+    }
+
+    .rule-box {
+      background-color: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .rule-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #1e40af;
+      letter-spacing: 0.05em;
+    }
+
+    .rule-content {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1d4ed8;
+      line-height: 1.45;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      cursor: pointer;
+    }
+
+    .toggle-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: #2563eb;
+      cursor: pointer;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+
+  <a class="back" href="index.html">&larr; All tools</a>
+  
+  <div class="app-container">
+    <header>
+      <h1>Volume Relationships: Cone, Cylinder, &amp; Sphere</h1>
+      <p class="subtitle">Standard 8.G.C.9 • Pour and Combine Volumes into the Reference Cylinder</p>
+    </header>
+
+    <div class="workspace">
+      <!-- Matte 3D Geometric Canvas -->
+      <div class="canvas-panel">
+        <svg id="plane" viewBox="0 0 500 360">
+          <defs id="svg-defs"></defs>
+          <g id="sources-layer"></g>
+          <g id="cylinder-liquid-layer"></g>
+          <g id="cylinder-glass-layer"></g>
+          <g id="markers-layer"></g>
+          <g id="labels-layer"></g>
+        </svg>
+
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background-color: #ea580c;"></div>
+            <span>Cone Liquid (¹⁄₃)</span>
+          </div>
+          <div class="legend-item" id="legend-sphere-item">
+            <div class="legend-dot" style="background-color: #8b5cf6;"></div>
+            <span>Sphere Liquid (²⁄₃)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background-color: #2563eb;"></div>
+            <span>Cylinder (Full)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Panel -->
+      <div class="control-panel">
+        
+        <!-- Demonstration Mode -->
+        <div class="section-card">
+          <div class="section-title">1. Demonstration Mode</div>
+          <div class="segmented-control" role="tablist">
+            <button class="seg-btn active" id="mode-trio" onclick="setMode('trio')">Cone + Sphere = Cylinder</button>
+            <button class="seg-btn" id="mode-threecones" onclick="setMode('threecones')">3 Cones = 1 Cylinder</button>
+          </div>
+        </div>
+
+        <!-- Pouring Controls -->
+        <div class="section-card">
+          <div class="section-title">2. Pour Volumes (Click buttons or shapes)</div>
+          <div class="action-grid" id="action-buttons-container"></div>
+          <button class="btn-reset" onclick="emptyAll()">Empty Cylinder ↺</button>
+        </div>
+
+        <!-- Dimension Controls (Expanded Range) -->
+        <div class="section-card">
+          <div class="section-title">3. Shared Dimensions</div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <span>Radius (r)</span>
+              <span id="val-r" style="font-family: monospace; font-weight: 700;">3 units</span>
+            </div>
+            <input type="range" id="slider-r" min="1" max="6" step="1" value="3" oninput="updateState()">
+          </div>
+        </div>
+
+        <!-- Volume Data Table -->
+        <div class="section-card">
+          <div class="section-title">4. Exact Volume Comparison</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Solid</th>
+                <th>Formula</th>
+                <th>Volume (π)</th>
+                <th>Cylinder Fraction</th>
+              </tr>
+            </thead>
+            <tbody id="volume-table-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Pedagogical Reveal Card -->
+        <div class="section-card">
+          <label class="toggle-row">
+            <span class="toggle-label">Reveal Volume Relationship</span>
+            <input type="checkbox" id="toggle-reasoning" onchange="toggleReasoningDisplay()">
+          </label>
+          <div class="rule-box" id="reasoning-container" style="display: none;">
+            <div class="rule-title">Geometric Proof</div>
+            <div class="rule-content" id="reasoning-text"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentMode = 'trio'; // 'trio' or 'threecones'
+    
+    // In Trio Mode:
+    let isConePoured = false;   // 1/3 volume
+    let isSpherePoured = false; // 2/3 volume
+
+    // In 3 Cones Mode:
+    let isCone1Poured = false;
+    let isCone2Poured = false;
+    let isCone3Poured = false;
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('mode-trio').classList.toggle('active', mode === 'trio');
+      document.getElementById('mode-threecones').classList.toggle('active', mode === 'threecones');
+      
+      const legendSphere = document.getElementById('legend-sphere-item');
+      legendSphere.style.display = (mode === 'trio') ? 'flex' : 'none';
+
+      emptyAll();
+    }
+
+    function emptyAll() {
+      isConePoured = false;
+      isSpherePoured = false;
+      isCone1Poured = false;
+      isCone2Poured = false;
+      isCone3Poured = false;
+      renderActionButtons();
+      updateState();
+    }
+
+    function toggleCone() {
+      isConePoured = !isConePoured;
+      renderActionButtons();
+      updateState();
+    }
+
+    function toggleSphere() {
+      isSpherePoured = !isSpherePoured;
+      renderActionButtons();
+      updateState();
+    }
+
+    function toggleCone1() {
+      isCone1Poured = !isCone1Poured;
+      renderActionButtons();
+      updateState();
+    }
+
+    function toggleCone2() {
+      isCone2Poured = !isCone2Poured;
+      renderActionButtons();
+      updateState();
+    }
+
+    function toggleCone3() {
+      isCone3Poured = !isCone3Poured;
+      renderActionButtons();
+      updateState();
+    }
+
+    function renderActionButtons() {
+      const container = document.getElementById('action-buttons-container');
+      container.innerHTML = '';
+
+      if (currentMode === 'trio') {
+        const btnCone = document.createElement('button');
+        btnCone.className = `btn-action ${isConePoured ? 'poured-cone' : ''}`;
+        btnCone.innerHTML = isConePoured ? '✓ Cone Poured (¹⁄₃)' : '+ Pour Cone (¹⁄₃)';
+        btnCone.onclick = toggleCone;
+
+        const btnSphere = document.createElement('button');
+        btnSphere.className = `btn-action ${isSpherePoured ? 'poured-sphere' : ''}`;
+        btnSphere.innerHTML = isSpherePoured ? '✓ Sphere Poured (²⁄₃)' : '+ Pour Sphere (²⁄₃)';
+        btnSphere.onclick = toggleSphere;
+
+        container.appendChild(btnCone);
+        container.appendChild(btnSphere);
+      } else {
+        const btn1 = document.createElement('button');
+        btn1.className = `btn-action ${isCone1Poured ? 'poured-cone' : ''}`;
+        btn1.innerHTML = isCone1Poured ? '✓ Cone 1 (¹⁄₃)' : '+ Pour Cone 1';
+        btn1.onclick = toggleCone1;
+
+        const btn2 = document.createElement('button');
+        btn2.className = `btn-action ${isCone2Poured ? 'poured-cone2' : ''}`;
+        btn2.innerHTML = isCone2Poured ? '✓ Cone 2 (¹⁄₃)' : '+ Pour Cone 2';
+        btn2.onclick = toggleCone2;
+
+        const btn3 = document.createElement('button');
+        btn3.className = `btn-action ${isCone3Poured ? 'poured-cone3' : ''}`;
+        btn3.innerHTML = isCone3Poured ? '✓ Cone 3 (¹⁄₃)' : '+ Pour Cone 3';
+        btn3.onclick = toggleCone3;
+
+        container.appendChild(btn1);
+        container.appendChild(btn2);
+        container.appendChild(btn3);
+      }
+    }
+
+    function toggleReasoningDisplay() {
+      const show = document.getElementById('toggle-reasoning').checked;
+      document.getElementById('reasoning-container').style.display = show ? 'flex' : 'none';
+    }
+
+    // Format fraction coefficients cleanly with π
+    function formatPiCoeff(numerator, denominator = 1) {
+      if (denominator === 1) {
+        return `${numerator} π`;
+      }
+      if (numerator % denominator === 0) {
+        return `${numerator / denominator} π`;
+      }
+      return `${numerator}/${denominator} π`;
+    }
+
+    function buildMatteShaders() {
+      const defs = document.getElementById('svg-defs');
+      defs.innerHTML = `
+        <linearGradient id="grad-matte-glass" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#bfdbfe" stop-opacity="0.35" />
+          <stop offset="35%" stop-color="#eff6ff" stop-opacity="0.20" />
+          <stop offset="70%" stop-color="#dbeafe" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="#93c5fd" stop-opacity="0.45" />
+        </linearGradient>
+
+        <linearGradient id="grad-matte-orange" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#c2410c" />
+          <stop offset="35%" stop-color="#f97316" />
+          <stop offset="75%" stop-color="#ea580c" />
+          <stop offset="100%" stop-color="#9a3412" />
+        </linearGradient>
+
+        <linearGradient id="grad-matte-purple" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#6b21a8" />
+          <stop offset="35%" stop-color="#a855f7" />
+          <stop offset="75%" stop-color="#8b5cf6" />
+          <stop offset="100%" stop-color="#581c87" />
+        </linearGradient>
+
+        <radialGradient id="grad-matte-sphere" cx="40%" cy="38%" r="62%">
+          <stop offset="0%" stop-color="#c084fc" />
+          <stop offset="55%" stop-color="#8b5cf6" />
+          <stop offset="85%" stop-color="#6b21a8" />
+          <stop offset="100%" stop-color="#4c1d95" />
+        </radialGradient>
+
+        <radialGradient id="grad-matte-sphere-empty" cx="40%" cy="38%" r="62%">
+          <stop offset="0%" stop-color="#f3e8ff" stop-opacity="0.4" />
+          <stop offset="70%" stop-color="#d8b4fe" stop-opacity="0.2" />
+          <stop offset="100%" stop-color="#c084fc" stop-opacity="0.35" />
+        </radialGradient>
+
+        <linearGradient id="grad-matte-cone" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#c2410c" />
+          <stop offset="35%" stop-color="#fb923c" />
+          <stop offset="75%" stop-color="#ea580c" />
+          <stop offset="100%" stop-color="#9a3412" />
+        </linearGradient>
+      `;
+    }
+
+    function create3DConeElement(cx, cy, rx, h, ry, isPoured, clickCallback) {
+      const topY = cy - h / 2;
+      const botY = cy + h / 2;
+
+      const g = document.createElementNS(svgNS, 'g');
+      g.setAttribute('class', 'interactive-shape');
+      g.onclick = clickCallback;
+
+      const shell = document.createElementNS(svgNS, 'path');
+      shell.setAttribute('d', `M ${cx} ${topY} L ${cx + rx} ${botY} A ${rx} ${ry} 0 0 1 ${cx - rx} ${botY} Z`);
+      shell.setAttribute('fill', '#fed7aa');
+      shell.setAttribute('fill-opacity', '0.2');
+      shell.setAttribute('stroke', '#ea580c');
+      shell.setAttribute('stroke-width', '2');
+      g.appendChild(shell);
+
+      if (!isPoured) {
+        const liquidBody = document.createElementNS(svgNS, 'path');
+        liquidBody.setAttribute('d', `M ${cx} ${topY} L ${cx + rx} ${botY} A ${rx} ${ry} 0 0 1 ${cx - rx} ${botY} Z`);
+        liquidBody.setAttribute('fill', 'url(#grad-matte-cone)');
+        g.appendChild(liquidBody);
+
+        const baseCap = document.createElementNS(svgNS, 'ellipse');
+        baseCap.setAttribute('cx', cx);
+        baseCap.setAttribute('cy', botY);
+        baseCap.setAttribute('rx', rx);
+        baseCap.setAttribute('ry', ry);
+        baseCap.setAttribute('fill', '#ea580c');
+        baseCap.setAttribute('stroke', '#9a3412');
+        baseCap.setAttribute('stroke-width', '1.5');
+        g.appendChild(baseCap);
+      } else {
+        const dashedBase = document.createElementNS(svgNS, 'path');
+        dashedBase.setAttribute('d', `M ${cx - rx} ${botY} A ${rx} ${ry} 0 0 1 ${cx + rx} ${botY}`);
+        dashedBase.setAttribute('fill', 'none');
+        dashedBase.setAttribute('stroke', '#ea580c');
+        dashedBase.setAttribute('stroke-width', '1.5');
+        dashedBase.setAttribute('stroke-dasharray', '4 3');
+        g.appendChild(dashedBase);
+      }
+
+      return g;
+    }
+
+    function updateState() {
+      const r = parseInt(document.getElementById('slider-r').value, 10);
+      const h = 2 * r; // Cylinder height = 2r
+
+      document.getElementById('val-r').textContent = `${r} units (h = ${h})`;
+
+      const sourcesLayer = document.getElementById('sources-layer');
+      const liquidLayer = document.getElementById('cylinder-liquid-layer');
+      const glassLayer = document.getElementById('cylinder-glass-layer');
+      const markersLayer = document.getElementById('markers-layer');
+      const labelsLayer = document.getElementById('labels-layer');
+
+      sourcesLayer.innerHTML = '';
+      liquidLayer.innerHTML = '';
+      glassLayer.innerHTML = '';
+      markersLayer.innerHTML = '';
+      labelsLayer.innerHTML = '';
+
+      // ==========================================
+      // ADAPTIVE GEOMETRIC SCALING (r = 1 to 6)
+      // ==========================================
+      const scaleRatio = 0.65 + ((r - 1) / 5) * 0.45; // 0.65 at r=1 up to 1.10 at r=6
+
+      const cylCX = 360;
+      const cylCY = 175;
+      const cylRX = 72 * scaleRatio;
+      const cylH = 204 * scaleRatio;
+      const cylRY = 18 * scaleRatio;
+      const cylTopY = cylCY - cylH / 2;
+      const cylBotY = cylCY + cylH / 2;
+      const oneThirdH = cylH / 3;
+
+      // ==========================================
+      // 1. RENDER SOURCE SHAPES (LEFT SIDE)
+      // ==========================================
+      if (currentMode === 'trio') {
+        // --- 3D SOURCE CONE (Top-Left) ---
+        const coneCX = 120;
+        const coneCY = 95;
+        const coneRX = 48 * scaleRatio;
+        const coneH = 95 * scaleRatio;
+        const coneRY = 12 * scaleRatio;
+
+        sourcesLayer.appendChild(create3DConeElement(coneCX, coneCY, coneRX, coneH, coneRY, isConePoured, toggleCone));
+
+        const coneLbl = document.createElementNS(svgNS, 'text');
+        coneLbl.setAttribute('x', coneCX);
+        coneLbl.setAttribute('y', (coneCY + coneH / 2) + 18);
+        coneLbl.setAttribute('text-anchor', 'middle');
+        coneLbl.setAttribute('fill', '#c2410c');
+        coneLbl.setAttribute('font-size', '11');
+        coneLbl.setAttribute('font-weight', '700');
+        coneLbl.setAttribute('class', 'canvas-label');
+        coneLbl.textContent = isConePoured ? 'Cone (Poured ⤵)' : 'Cone (¹⁄₃ Volume)';
+        labelsLayer.appendChild(coneLbl);
+
+        // --- 3D SOURCE SPHERE (Bottom-Left) ---
+        const sphCX = 120;
+        const sphCY = 245;
+        const sphR = 48 * scaleRatio;
+
+        const sphG = document.createElementNS(svgNS, 'g');
+        sphG.setAttribute('class', 'interactive-shape');
+        sphG.onclick = toggleSphere;
+
+        if (!isSpherePoured) {
+          const sphSolid = document.createElementNS(svgNS, 'circle');
+          sphSolid.setAttribute('cx', sphCX);
+          sphSolid.setAttribute('cy', sphCY);
+          sphSolid.setAttribute('r', sphR);
+          sphSolid.setAttribute('fill', 'url(#grad-matte-sphere)');
+          sphSolid.setAttribute('stroke', '#4c1d95');
+          sphSolid.setAttribute('stroke-width', '2');
+          sphG.appendChild(sphSolid);
+        } else {
+          const sphEmpty = document.createElementNS(svgNS, 'circle');
+          sphEmpty.setAttribute('cx', sphCX);
+          sphEmpty.setAttribute('cy', sphCY);
+          sphEmpty.setAttribute('r', sphR);
+          sphEmpty.setAttribute('fill', 'url(#grad-matte-sphere-empty)');
+          sphEmpty.setAttribute('stroke', '#8b5cf6');
+          sphEmpty.setAttribute('stroke-width', '2');
+          sphG.appendChild(sphEmpty);
+
+          const emptyEquator = document.createElementNS(svgNS, 'ellipse');
+          emptyEquator.setAttribute('cx', sphCX);
+          emptyEquator.setAttribute('cy', sphCY);
+          emptyEquator.setAttribute('rx', sphR * 0.95);
+          emptyEquator.setAttribute('ry', sphR * 0.28);
+          emptyEquator.setAttribute('fill', 'none');
+          emptyEquator.setAttribute('stroke', '#8b5cf6');
+          emptyEquator.setAttribute('stroke-width', '1.5');
+          emptyEquator.setAttribute('stroke-dasharray', '4 3');
+          sphG.appendChild(emptyEquator);
+        }
+
+        sourcesLayer.appendChild(sphG);
+
+        const sphLbl = document.createElementNS(svgNS, 'text');
+        sphLbl.setAttribute('x', sphCX);
+        sphLbl.setAttribute('y', sphCY + sphR + 18);
+        sphLbl.setAttribute('text-anchor', 'middle');
+        sphLbl.setAttribute('fill', '#6b21a8');
+        sphLbl.setAttribute('font-size', '11');
+        sphLbl.setAttribute('font-weight', '700');
+        sphLbl.setAttribute('class', 'canvas-label');
+        sphLbl.textContent = isSpherePoured ? 'Sphere (Poured ⤵)' : 'Sphere (²⁄₃ Volume)';
+        labelsLayer.appendChild(sphLbl);
+
+      } else {
+        // --- 3D CONES MODE (All 3 Cones Scaled Adaptively) ---
+        const coneRX = 38 * scaleRatio;
+        const coneH = 80 * scaleRatio;
+        const coneRY = 10 * scaleRatio;
+        const coneConfigs = [
+          { cx: 70, cy: 90, poured: isCone1Poured, toggle: toggleCone1, label: 'Cone 1' },
+          { cx: 165, cy: 90, poured: isCone2Poured, toggle: toggleCone2, label: 'Cone 2' },
+          { cx: 118, cy: 230, poured: isCone3Poured, toggle: toggleCone3, label: 'Cone 3' }
+        ];
+
+        coneConfigs.forEach(cfg => {
+          sourcesLayer.appendChild(create3DConeElement(cfg.cx, cfg.cy, coneRX, coneH, coneRY, cfg.poured, cfg.toggle));
+
+          const lbl = document.createElementNS(svgNS, 'text');
+          lbl.setAttribute('x', cfg.cx);
+          lbl.setAttribute('y', (cfg.cy + coneH / 2) + 16);
+          lbl.setAttribute('text-anchor', 'middle');
+          lbl.setAttribute('fill', '#c2410c');
+          lbl.setAttribute('font-size', '11');
+          lbl.setAttribute('font-weight', '700');
+          lbl.setAttribute('class', 'canvas-label');
+          lbl.textContent = cfg.poured ? `${cfg.label} (Poured)` : `${cfg.label} (¹⁄₃)`;
+          labelsLayer.appendChild(lbl);
+        });
+      }
+
+      // ==========================================
+      // 2. RENDER MATTE LIQUID IN CYLINDER
+      // ==========================================
+      function drawLiquidLayer(bottomY, height, gradientId, topFillColor, strokeColor) {
+        const topY = bottomY - height;
+        const g = document.createElementNS(svgNS, 'g');
+
+        const block = document.createElementNS(svgNS, 'path');
+        block.setAttribute('d', `M ${cylCX - cylRX + 1.5} ${topY} L ${cylCX + cylRX - 1.5} ${topY} L ${cylCX + cylRX - 1.5} ${bottomY} A ${cylRX - 1.5} ${cylRY} 0 0 1 ${cylCX - cylRX + 1.5} ${bottomY} Z`);
+        block.setAttribute('fill', gradientId);
+        g.appendChild(block);
+
+        const topCap = document.createElementNS(svgNS, 'ellipse');
+        topCap.setAttribute('cx', cylCX);
+        topCap.setAttribute('cy', topY);
+        topCap.setAttribute('rx', cylRX - 1.5);
+        topCap.setAttribute('ry', cylRY);
+        topCap.setAttribute('fill', topFillColor);
+        topCap.setAttribute('stroke', strokeColor);
+        topCap.setAttribute('stroke-width', '1.5');
+        g.appendChild(topCap);
+
+        return g;
+      }
+
+      if (currentMode === 'trio') {
+        if (isConePoured && !isSpherePoured) {
+          liquidLayer.appendChild(drawLiquidLayer(cylBotY, oneThirdH, 'url(#grad-matte-orange)', '#ea580c', '#9a3412'));
+        } else if (!isConePoured && isSpherePoured) {
+          liquidLayer.appendChild(drawLiquidLayer(cylBotY, oneThirdH * 2, 'url(#grad-matte-purple)', '#8b5cf6', '#581c87'));
+        } else if (isConePoured && isSpherePoured) {
+          liquidLayer.appendChild(drawLiquidLayer(cylBotY, oneThirdH, 'url(#grad-matte-orange)', '#ea580c', '#9a3412'));
+          liquidLayer.appendChild(drawLiquidLayer(cylBotY - oneThirdH, oneThirdH * 2, 'url(#grad-matte-purple)', '#8b5cf6', '#581c87'));
+        }
+      } else {
+        const pouredCount = (isCone1Poured ? 1 : 0) + (isCone2Poured ? 1 : 0) + (isCone3Poured ? 1 : 0);
+        if (pouredCount > 0) {
+          liquidLayer.appendChild(drawLiquidLayer(cylBotY, oneThirdH * pouredCount, 'url(#grad-matte-orange)', '#ea580c', '#9a3412'));
+        }
+      }
+
+      // ==========================================
+      // 3. RENDER MATTE GLASS CYLINDER CASING
+      // ==========================================
+      const cylGlassBody = document.createElementNS(svgNS, 'path');
+      cylGlassBody.setAttribute('d', `M ${cylCX - cylRX} ${cylTopY} L ${cylCX + cylRX} ${cylTopY} L ${cylCX + cylRX} ${cylBotY} A ${cylRX} ${cylRY} 0 0 1 ${cylCX - cylRX} ${cylBotY} Z`);
+      cylGlassBody.setAttribute('fill', 'url(#grad-matte-glass)');
+      glassLayer.appendChild(cylGlassBody);
+
+      const lWall = document.createElementNS(svgNS, 'line');
+      lWall.setAttribute('x1', cylCX - cylRX);
+      lWall.setAttribute('y1', cylTopY);
+      lWall.setAttribute('x2', cylCX - cylRX);
+      lWall.setAttribute('y2', cylBotY);
+      lWall.setAttribute('stroke', '#1e40af');
+      lWall.setAttribute('stroke-width', '2.5');
+      glassLayer.appendChild(lWall);
+
+      const rWall = document.createElementNS(svgNS, 'line');
+      rWall.setAttribute('x1', cylCX + cylRX);
+      rWall.setAttribute('y1', cylTopY);
+      rWall.setAttribute('x2', cylCX + cylRX);
+      rWall.setAttribute('y2', cylBotY);
+      rWall.setAttribute('stroke', '#1e40af');
+      rWall.setAttribute('stroke-width', '2.5');
+      glassLayer.appendChild(rWall);
+
+      const botArc = document.createElementNS(svgNS, 'path');
+      botArc.setAttribute('d', `M ${cylCX - cylRX} ${cylBotY} A ${cylRX} ${cylRY} 0 0 0 ${cylCX + cylRX} ${cylBotY}`);
+      botArc.setAttribute('fill', 'none');
+      botArc.setAttribute('stroke', '#1e40af');
+      botArc.setAttribute('stroke-width', '2.5');
+      glassLayer.appendChild(botArc);
+
+      const topRim = document.createElementNS(svgNS, 'ellipse');
+      topRim.setAttribute('cx', cylCX);
+      topRim.setAttribute('cy', cylTopY);
+      topRim.setAttribute('rx', cylRX);
+      topRim.setAttribute('ry', cylRY);
+      topRim.setAttribute('fill', '#eff6ff');
+      topRim.setAttribute('fill-opacity', '0.25');
+      topRim.setAttribute('stroke', '#1e40af');
+      topRim.setAttribute('stroke-width', '2.5');
+      glassLayer.appendChild(topRim);
+
+      // ==========================================
+      // 4. GRADUATION MARKERS & LABELS
+      // ==========================================
+      const markers = [
+        { y: cylBotY - oneThirdH, text: '¹⁄₃ Level', color: '#ea580c' },
+        { y: cylBotY - 2 * oneThirdH, text: '²⁄₃ Level', color: (currentMode === 'trio' ? '#8b5cf6' : '#ea580c') },
+        { y: cylTopY, text: '³⁄₃ Full', color: '#1d4ed8' }
+      ];
+
+      markers.forEach(m => {
+        const tick = document.createElementNS(svgNS, 'line');
+        tick.setAttribute('x1', cylCX - cylRX);
+        tick.setAttribute('y1', m.y);
+        tick.setAttribute('x2', cylCX + cylRX);
+        tick.setAttribute('y2', m.y);
+        tick.setAttribute('stroke', '#64748b');
+        tick.setAttribute('stroke-width', '1.5');
+        tick.setAttribute('stroke-dasharray', '4 3');
+        markersLayer.appendChild(tick);
+
+        const t = document.createElementNS(svgNS, 'text');
+        t.setAttribute('x', cylCX + cylRX + 8);
+        t.setAttribute('y', m.y + 4);
+        t.setAttribute('fill', m.color);
+        t.setAttribute('font-size', '11');
+        t.setAttribute('font-weight', '700');
+        t.setAttribute('class', 'canvas-label');
+        t.textContent = m.text;
+        markersLayer.appendChild(t);
+      });
+
+      const cylTitle = document.createElementNS(svgNS, 'text');
+      cylTitle.setAttribute('x', cylCX);
+      cylTitle.setAttribute('y', cylBotY + 22);
+      cylTitle.setAttribute('text-anchor', 'middle');
+      cylTitle.setAttribute('fill', '#1d4ed8');
+      cylTitle.setAttribute('font-size', '12');
+      cylTitle.setAttribute('font-weight', '700');
+      cylTitle.setAttribute('class', 'canvas-label');
+      cylTitle.textContent = `Cylinder (r = ${r}, h = ${h})`;
+      labelsLayer.appendChild(cylTitle);
+
+      // ==========================================
+      // 5. DATA TABLE & EXPLANATION
+      // ==========================================
+      const exactCone = formatPiCoeff(2 * (r ** 3), 3);
+      const exactSphere = formatPiCoeff(4 * (r ** 3), 3);
+      const exactCyl = formatPiCoeff(2 * (r ** 3), 1);
+
+      const tableBody = document.getElementById('volume-table-body');
+      
+      if (currentMode === 'trio') {
+        tableBody.innerHTML = `
+          <tr>
+            <td><span class="tag tag-cone">Cone</span></td>
+            <td>¹⁄₃ π r² h</td>
+            <td><strong>${exactCone}</strong></td>
+            <td><span class="ratio-pill">¹⁄₃</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-sphere">Sphere</span></td>
+            <td>⁴⁄₃ π r³</td>
+            <td><strong>${exactSphere}</strong></td>
+            <td><span class="ratio-pill">²⁄₃</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-cyl">Cylinder</span></td>
+            <td>π r² h</td>
+            <td><strong>${exactCyl}</strong></td>
+            <td><span class="ratio-pill">1 (Full)</span></td>
+          </tr>
+        `;
+
+        let statusSentence = "Try pouring either the cone or sphere first.";
+        if (isConePoured && !isSpherePoured) {
+          statusSentence = `The Cone is poured, filling exactly 1/3 of the cylinder (${exactCone}). The remaining 2/3 space is ready for the sphere.`;
+        } else if (!isConePoured && isSpherePoured) {
+          statusSentence = `The Sphere is poured, filling exactly 2/3 of the cylinder (${exactSphere}). The remaining 1/3 space is ready for the cone.`;
+        } else if (isConePoured && isSpherePoured) {
+          statusSentence = `Both are poured! Cone (${exactCone}) + Sphere (${exactSphere}) completely fills 100% of the Cylinder (${exactCyl}).`;
+        }
+
+        document.getElementById('reasoning-text').textContent = statusSentence;
+      } else {
+        const pouredCount = (isCone1Poured ? 1 : 0) + (isCone2Poured ? 1 : 0) + (isCone3Poured ? 1 : 0);
+        tableBody.innerHTML = `
+          <tr>
+            <td><span class="tag tag-cone">1 Cone</span></td>
+            <td>¹⁄₃ π r² h</td>
+            <td><strong>${exactCone}</strong></td>
+            <td><span class="ratio-pill">¹⁄₃</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-cone">3 Cones</span></td>
+            <td>3 × (¹⁄₃ π r² h)</td>
+            <td><strong>${exactCyl}</strong></td>
+            <td><span class="ratio-pill">³⁄₃ = 1</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-cyl">Cylinder</span></td>
+            <td>π r² h</td>
+            <td><strong>${exactCyl}</strong></td>
+            <td><span class="ratio-pill">1 (Full)</span></td>
+          </tr>
+        `;
+
+        document.getElementById('reasoning-text').textContent = 
+          `${pouredCount} of 3 cones poured (${formatPiCoeff(pouredCount * 2 * (r**3), 3)}). It takes exactly 3 full cones to fill the entire cylinder.`;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      buildMatteShaders();
+      document.getElementById('slider-r').value = 3;
+      document.getElementById('toggle-reasoning').checked = false;
+
+      setMode('trio');
+    });
+  </script>
+</body>
+</html>
