@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Systems of equations: how many solutions?</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 18px;
+    background: #f8fafc;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .back {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2563eb;
+    text-decoration: none;
+    margin-bottom: 14px;
+  }
+  .back:hover { text-decoration: underline; }
+  h1 { font-size: 19px; font-weight: 650; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { margin: 0 0 12px; font-size: 14px; color: #64748b; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .btn {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 15px;
+    min-height: 44px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    border-radius: 8px;
+    color: #0f172a;
+    cursor: pointer;
+  }
+  .btn:hover { background: #f1f5f9; }
+  .btn:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+
+  .cards { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .card {
+    flex: 1 1 260px;
+    border: 1px solid #e2e8f0;
+    border-left-width: 5px;
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #ffffff;
+  }
+  .card.a { border-left-color: #1d6fd1; }
+  .card.b { border-left-color: #c2521a; }
+
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .card-name { font-size: 13px; font-weight: 700; }
+  .card.a .card-name { color: #1d6fd1; }
+  .card.b .card-name { color: #c2521a; }
+  .eq {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 15px;
+    font-weight: 700;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 3px 9px;
+  }
+
+  .row { margin-bottom: 8px; }
+  .row:last-child { margin-bottom: 0; }
+  .row-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 2px;
+  }
+  .row-label .v {
+    font-family: "Courier New", Courier, monospace;
+    color: #0f172a;
+  }
+
+  /* Padding plus content-box clipping gives a thin visible track
+     inside a tall, thumb-friendly tap area. */
+  input[type="range"] {
+    width: 100%;
+    height: 28px;
+    padding: 11px 0;
+    margin: 0;
+    background-color: #cbd5e1;
+    background-clip: content-box;
+    border-radius: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    outline: none;
+  }
+  input[type="range"]:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+
+  .card.a input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #1d6fd1; border: 2px solid #ffffff; cursor: pointer;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.3);
+  }
+  .card.b input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #c2521a; border: 2px solid #ffffff; cursor: pointer;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.3);
+  }
+  .card.a input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #1d6fd1; border: 2px solid #ffffff; cursor: pointer;
+  }
+  .card.b input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #c2521a; border: 2px solid #ffffff; cursor: pointer;
+  }
+
+  .board {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 6px;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .verdict {
+    margin-top: 12px;
+    border: 1px solid #e2e8f0;
+    border-left-width: 6px;
+    border-radius: 10px;
+    padding: 13px 15px;
+    background: #ffffff;
+  }
+  .headline { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .reason { font-size: 14.5px; line-height: 1.55; color: #334155; }
+  .reason .note {
+    display: block;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+    color: #475569;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; All tools</a>
+
+  <h1>Systems of equations: how many solutions?</h1>
+  <p class="sub">Move the sliders and watch the graph. What has to be true about two lines for them to never cross?</p>
+
+  <div class="presets">
+    <button class="btn" type="button" data-preset="one">One solution</button>
+    <button class="btn" type="button" data-preset="none">No solution</button>
+    <button class="btn" type="button" data-preset="inf">Infinitely many</button>
+  </div>
+
+  <div class="cards">
+    <div class="card a">
+      <div class="card-head">
+        <span class="card-name">Line A</span>
+        <span class="eq" id="eqA"></span>
+      </div>
+      <div class="row">
+        <div class="row-label"><span>Slope (m)</span><span class="v" id="mAv"></span></div>
+        <input type="range" id="mA" min="-4" max="4" step="0.5" value="1" aria-label="Line A slope">
+      </div>
+      <div class="row">
+        <div class="row-label"><span>y-intercept (b)</span><span class="v" id="bAv"></span></div>
+        <input type="range" id="bA" min="-6" max="6" step="1" value="1" aria-label="Line A y-intercept">
+      </div>
+    </div>
+
+    <div class="card b">
+      <div class="card-head">
+        <span class="card-name">Line B</span>
+        <span class="eq" id="eqB"></span>
+      </div>
+      <div class="row">
+        <div class="row-label"><span>Slope (m)</span><span class="v" id="mBv"></span></div>
+        <input type="range" id="mB" min="-4" max="4" step="0.5" value="-1" aria-label="Line B slope">
+      </div>
+      <div class="row">
+        <div class="row-label"><span>y-intercept (b)</span><span class="v" id="bBv"></span></div>
+        <input type="range" id="bB" min="-6" max="6" step="1" value="3" aria-label="Line B y-intercept">
+      </div>
+    </div>
+  </div>
+
+  <div class="board">
+    <svg id="plane" viewBox="0 0 560 560" xmlns="http://www.w3.org/2000/svg" aria-label="Coordinate grid with two lines"></svg>
+  </div>
+
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<script>
+(function () {
+  var SVG = document.getElementById('plane');
+  var NS = 'http://www.w3.org/2000/svg';
+
+  var OX = 280, OY = 280, U = 30, MIN = -8, MAX = 8;
+
+  var COLOR_A = '#1d6fd1';
+  var COLOR_B = '#c2521a';
+  var ONE = '#15803d';
+  var NONE = '#b45309';
+  var INF = '#6d28d9';
+  var DOT = '#15803d';
+
+  var S = {
+    mA: document.getElementById('mA'), bA: document.getElementById('bA'),
+    mB: document.getElementById('mB'), bB: document.getElementById('bB')
+  };
+
+  function sx(x) { return OX + x * U; }
+  function sy(y) { return OY - y * U; }
+  function neg(s) { return String(s).replace(/-/g, '\u2212'); }
+  function fmt(n) { return neg(Math.round(n * 100) / 100); }
+
+  function el(tag, attrs) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) { n.setAttribute(k, attrs[k]); }
+    return n;
+  }
+
+  /* ---------- static grid ---------- */
+  var gGrid = el('g', {});
+  var gArt = el('g', {});
+  SVG.appendChild(gGrid);
+  SVG.appendChild(gArt);
+
+  (function buildGrid() {
+    var i;
+    for (i = MIN; i <= MAX; i++) {
+      gGrid.appendChild(el('line', { x1: sx(i), y1: sy(MIN), x2: sx(i), y2: sy(MAX), stroke: '#e8edf3', 'stroke-width': 1 }));
+      gGrid.appendChild(el('line', { x1: sx(MIN), y1: sy(i), x2: sx(MAX), y2: sy(i), stroke: '#e8edf3', 'stroke-width': 1 }));
+    }
+    gGrid.appendChild(el('line', { x1: sx(MIN), y1: sy(0), x2: sx(MAX), y2: sy(0), stroke: '#94a3b8', 'stroke-width': 2 }));
+    gGrid.appendChild(el('line', { x1: sx(0), y1: sy(MIN), x2: sx(0), y2: sy(MAX), stroke: '#94a3b8', 'stroke-width': 2 }));
+
+    for (i = MIN; i <= MAX; i += 2) {
+      if (i === 0) continue;
+      var tx = el('text', { x: sx(i), y: sy(0) + 15, 'text-anchor': 'middle', 'font-size': 11, fill: '#94a3b8' });
+      tx.textContent = neg(i);
+      gGrid.appendChild(tx);
+      var ty = el('text', { x: sx(0) - 7, y: sy(i) + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#94a3b8' });
+      ty.textContent = neg(i);
+      gGrid.appendChild(ty);
+    }
+
+    var lx = el('text', { x: sx(MAX) + 4, y: sy(0) - 8, 'font-size': 14, 'font-weight': 700, fill: '#64748b' });
+    lx.textContent = 'x';
+    gGrid.appendChild(lx);
+    var ly = el('text', { x: sx(0) + 9, y: sy(MAX) - 4, 'font-size': 14, 'font-weight': 700, fill: '#64748b' });
+    ly.textContent = 'y';
+    gGrid.appendChild(ly);
+  })();
+
+  /* ---------- geometry ---------- */
+
+  // Clip the line y = mx + b to the visible box.
+  function clipLine(m, b) {
+    var p = { x: MIN, y: m * MIN + b };
+    var q = { x: MAX, y: m * MAX + b };
+    var dx = q.x - p.x, dy = q.y - p.y;
+    var t0 = -1e9, t1 = 1e9;
+    var P = [-dx, dx, -dy, dy];
+    var Q = [p.x - MIN, MAX - p.x, p.y - MIN, MAX - p.y];
+    for (var i = 0; i < 4; i++) {
+      if (P[i] === 0) { if (Q[i] < 0) return null; }
+      else {
+        var t = Q[i] / P[i];
+        if (P[i] < 0) { if (t > t0) t0 = t; } else { if (t < t1) t1 = t; }
+      }
+    }
+    if (t0 > t1) return null;
+    return { a: { x: p.x + t0 * dx, y: p.y + t0 * dy }, b: { x: p.x + t1 * dx, y: p.y + t1 * dy } };
+  }
+
+  function equation(m, b) {
+    var mStr;
+    if (m === 0) { mStr = ''; }
+    else if (m === 1) { mStr = 'x'; }
+    else if (m === -1) { mStr = '\u2212x'; }
+    else { mStr = neg(m) + 'x'; }
+
+    var bStr;
+    if (b === 0) { bStr = (m === 0) ? '0' : ''; }
+    else if (m === 0) { bStr = neg(b); }
+    else { bStr = (b > 0 ? ' + ' : ' \u2212 ') + Math.abs(b); }
+
+    return 'y = ' + mStr + bStr;
+  }
+
+  /* ---------- render ---------- */
+
+  function render() {
+    // Read straight from the DOM every time. Browsers restore slider
+    // positions on reload, so this stays correct without a separate sync step.
+    var mA = parseFloat(S.mA.value), bA = parseFloat(S.bA.value);
+    var mB = parseFloat(S.mB.value), bB = parseFloat(S.bB.value);
+
+    document.getElementById('mAv').textContent = neg(mA);
+    document.getElementById('bAv').textContent = neg(bA);
+    document.getElementById('mBv').textContent = neg(mB);
+    document.getElementById('bBv').textContent = neg(bB);
+    document.getElementById('eqA').textContent = equation(mA, bA);
+    document.getElementById('eqB').textContent = equation(mB, bB);
+
+    while (gArt.firstChild) { gArt.removeChild(gArt.firstChild); }
+
+    var sameSlope = Math.abs(mA - mB) < 1e-9;
+    var sameIntercept = Math.abs(bA - bB) < 1e-9;
+
+    var cA = clipLine(mA, bA), cB = clipLine(mB, bB);
+
+    if (sameSlope && sameIntercept) {
+      // One line drawn twice: thick underneath, dashed on top so both show.
+      if (cA) {
+        gArt.appendChild(el('line', {
+          x1: sx(cA.a.x), y1: sy(cA.a.y), x2: sx(cA.b.x), y2: sy(cA.b.y),
+          stroke: COLOR_A, 'stroke-width': 5, 'stroke-linecap': 'round'
+        }));
+        gArt.appendChild(el('line', {
+          x1: sx(cA.a.x), y1: sy(cA.a.y), x2: sx(cA.b.x), y2: sy(cA.b.y),
+          stroke: COLOR_B, 'stroke-width': 4, 'stroke-dasharray': '9 9', 'stroke-linecap': 'butt'
+        }));
+      }
+    } else {
+      if (cA) {
+        gArt.appendChild(el('line', {
+          x1: sx(cA.a.x), y1: sy(cA.a.y), x2: sx(cA.b.x), y2: sy(cA.b.y),
+          stroke: COLOR_A, 'stroke-width': 3.5, 'stroke-linecap': 'round'
+        }));
+      }
+      if (cB) {
+        gArt.appendChild(el('line', {
+          x1: sx(cB.a.x), y1: sy(cB.a.y), x2: sx(cB.b.x), y2: sy(cB.b.y),
+          stroke: COLOR_B, 'stroke-width': 3.5, 'stroke-linecap': 'round'
+        }));
+      }
+    }
+
+    var ix = null, iy = null, onGrid = false;
+    if (!sameSlope) {
+      ix = (bB - bA) / (mA - mB);
+      iy = mA * ix + bA;
+      onGrid = Math.abs(ix) <= MAX && Math.abs(iy) <= MAX;
+      if (onGrid) {
+        gArt.appendChild(el('circle', {
+          cx: sx(ix), cy: sy(iy), r: 11, fill: 'none',
+          stroke: DOT, 'stroke-width': 2.5, opacity: 0.55
+        }));
+        gArt.appendChild(el('circle', {
+          cx: sx(ix), cy: sy(iy), r: 6, fill: DOT, stroke: '#ffffff', 'stroke-width': 2
+        }));
+      }
+    }
+
+    renderVerdict(mA, bA, mB, bB, sameSlope, sameIntercept, ix, iy, onGrid);
+  }
+
+  function renderVerdict(mA, bA, mB, bB, sameSlope, sameIntercept, ix, iy, onGrid) {
+    var box = document.getElementById('verdict');
+    var color, head, reason;
+
+    if (sameSlope && sameIntercept) {
+      color = INF;
+      head = 'Infinitely many solutions';
+      reason = 'Same slope and same y-intercept. These are two ways of writing the same line, so every point on it solves both equations.';
+      reason += '<span class="note">Nudge one y-intercept by 1 and watch the number of solutions drop straight from infinity to zero.</span>';
+    } else if (sameSlope) {
+      color = NONE;
+      head = 'No solution';
+      reason = 'Both lines have slope ' + neg(mA) + ', so they climb at exactly the same rate and stay the same distance apart forever. ' +
+        'Their y-intercepts are different (' + neg(bA) + ' and ' + neg(bB) + '), so they start apart and never meet.';
+      reason += '<span class="note">Matching slopes alone does not make two lines the same line. The y-intercepts have to match too.</span>';
+    } else {
+      color = ONE;
+      head = 'One solution';
+      reason = 'The slopes are different (' + neg(mA) + ' and ' + neg(mB) + '), so these lines have to cross, and they can only cross once. ' +
+        'They meet at (' + fmt(ix) + ', ' + fmt(iy) + ')';
+      reason += onGrid ? '.' : ', which is off the edge of this grid.';
+      if (!onGrid) {
+        reason += '<span class="note">Two lines can look parallel on screen and still have one solution. Different slopes always cross eventually.</span>';
+      } else {
+        reason += '<span class="note">Drag one slope until it matches the other and watch this single solution disappear.</span>';
+      }
+    }
+
+    box.style.borderLeftColor = color;
+    box.innerHTML = '<div class="headline" style="color:' + color + '">' + head + '</div>' +
+      '<div class="reason">' + reason + '</div>';
+  }
+
+  /* ---------- controls ---------- */
+
+  var PRESETS = {
+    one: [1, 1, -1, 3],
+    none: [2, 2, 2, -3],
+    inf: [-1.5, 2, -1.5, 2]
+  };
+
+  ['mA', 'bA', 'mB', 'bB'].forEach(function (k) {
+    S[k].addEventListener('input', render);
+  });
+
+  var btns = document.querySelectorAll('.presets .btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', function () {
+      var p = PRESETS[this.getAttribute('data-preset')];
+      S.mA.value = p[0]; S.bA.value = p[1];
+      S.mB.value = p[2]; S.bB.value = p[3];
+      render();
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
