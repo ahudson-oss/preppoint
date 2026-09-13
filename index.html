@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom Tools & Widgets</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --border: #e2e8f0;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 2.5rem 1rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    /* Responsive Grid: 1 col on mobile, 2-3 on larger screens */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-badge {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: #eff6ff;
+      color: var(--primary);
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      margin-bottom: 0.75rem;
+    }
+
+    .card h2 {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin-bottom: 1.5rem;
+      flex-grow: 1;
+    }
+
+    .card a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      background-color: var(--primary);
+      color: #ffffff;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background-color 0.15s ease;
+    }
+
+    .card a:hover {
+      background-color: var(--primary-hover);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Interactive Classroom Tools</h1>
+      <p>Select an interactive tool or practice widget below to open it full screen.</p>
+    </header>
+
+    <div class="grid">
+
+      <!-- Card 1 -->
+      <article class="card">
+        <div>
+          <span class="card-badge">Geometry</span>
+          <h2>Angle Visualizer</h2>
+          <p>Explore angle measurements, transversals, and relationships between intersecting lines.</p>
+        </div>
+        <!-- Replace href with your actual file name -->
+        <a href="angle-visualizer.html" target="_blank" rel="noopener">Launch Tool &rarr;</a>
+      </article>
+
+      <!-- Card 2 -->
+      <article class="card">
+        <div>
+          <span class="card-badge">Algebra</span>
+          <h2>Linear Slope Sandbox</h2>
+          <p>Drag slope and intercept sliders to observe real-time equation changes and graphing effects.</p>
+        </div>
+        <a href="slope-sandbox.html" target="_blank" rel="noopener">Launch Tool &rarr;</a>
+      </article>
+
+      <!-- Card 3 -->
+      <article class="card">
+        <div>
+          <span class="card-badge">Practice</span>
+          <h2>Equation Solver Practice</h2>
+          <p>Step-by-step problem generator with instant feedback on multi-step solving techniques.</p>
+        </div>
+        <a href="equation-solver.html" target="_blank" rel="noopener">Launch Tool &rarr;</a>
+      </article>
+
+    </div>
+  </div>
+
+</body>
+</html>
