@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slope and rate of change</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 18px;
+    background: #ffffff;
+    color: #1a1a1a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 19px; font-weight: 650; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { margin: 0 0 12px; font-size: 14px; color: #58585a; }
+
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 12px;
+    padding: 8px 13px;
+    border: 1px solid #dcd8cf;
+    border-radius: 8px;
+    background: #faf9f6;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .toggle input { width: 17px; height: 17px; accent-color: #c2521a; cursor: pointer; margin: 0; }
+  .toggle:hover { background: #f3f1ec; }
+  .toggle:focus-within { outline: 3px solid #c2521a; outline-offset: 2px; }
+
+  .board {
+    border: 1px solid #e2e2dd;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 6px;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .cards { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .card {
+    flex: 1 1 210px;
+    border: 1px solid #e2e2dd;
+    border-left-width: 5px;
+    border-radius: 8px;
+    padding: 10px 13px;
+    background: #fafaf8;
+  }
+  .name { font-size: 13px; font-weight: 700; }
+  .big { font-size: 27px; font-weight: 700; margin: 3px 0 1px; line-height: 1.1; }
+  .detail { font-size: 13px; color: #48484a; line-height: 1.55; }
+  .compare {
+    margin-top: 12px;
+    border: 1px solid #dcd8cf;
+    background: #f6f3ec;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .compare b { font-weight: 650; }
+  .compare.quiet { color: #6a6a66; background: #fafaf8; border-color: #e6e4de; }
+  button {
+    margin-top: 12px;
+    font: inherit;
+    font-size: 14px;
+    padding: 8px 15px;
+    border: 1px solid #c9c9c3;
+    background: #ffffff;
+    border-radius: 8px;
+    color: #1a1a1a;
+    cursor: pointer;
+  }
+  button:hover { background: #f1f1ed; }
+  button:focus-visible { outline: 3px solid #1d6fd1; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Slope and rate of change</h1>
+  <p class="sub">Drag either point on the line. The slope updates as you move.</p>
+
+  <label class="toggle" for="showB">
+    <input type="checkbox" id="showB">
+    Show Line B
+  </label>
+
+  <div class="board">
+    <svg id="plane" viewBox="0 0 560 560" xmlns="http://www.w3.org/2000/svg" aria-label="Coordinate grid with draggable lines"></svg>
+  </div>
+
+  <div class="cards">
+    <div class="card" id="cardA"></div>
+    <div class="card" id="cardB"></div>
+  </div>
+
+  <div class="compare" id="compare"></div>
+
+  <button id="reset" type="button">Reset points</button>
+</div>
+
+<script>
+(function () {
+  var SVG = document.getElementById('plane');
+  var CHK = document.getElementById('showB');
+  var NS = 'http://www.w3.org/2000/svg';
+
+  var OX = 280, OY = 280, U = 24, MIN = -10, MAX = 10;
+
+  var COLOR_A = '#1d6fd1';
+  var COLOR_B = '#c2521a';
+
+  var START = {
+    A: [{ x: -4, y: -4 }, { x: -1, y: 2 }],
+    B: [{ x: -1, y: 5 }, { x: 2, y: -4 }]
+  };
+
+  var lines = {
+    A: { label: 'Line A', color: COLOR_A, pts: copyPts(START.A) },
+    B: { label: 'Line B', color: COLOR_B, pts: copyPts(START.B) }
+  };
+
+  // Browsers restore checkbox state on reload, so read the real DOM value
+  // instead of assuming this starts unchecked.
+  var showB = !!CHK.checked;
+
+  function copyPts(p) { return [{ x: p[0].x, y: p[0].y }, { x: p[1].x, y: p[1].y }]; }
+  function sx(x) { return OX + x * U; }
+  function sy(y) { return OY - y * U; }
+  function neg(s) { return String(s).replace(/-/g, '\u2212'); }
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a; }
+
+  function el(tag, attrs) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) { n.setAttribute(k, attrs[k]); }
+    return n;
+  }
+
+  /* ---------- static grid ---------- */
+  var gGrid = el('g', {});
+  var gArt = el('g', {});
+  SVG.appendChild(gGrid);
+  SVG.appendChild(gArt);
+
+  (function buildGrid() {
+    var i;
+    for (i = MIN; i <= MAX; i++) {
+      gGrid.appendChild(el('line', {
+        x1: sx(i), y1: sy(MIN), x2: sx(i), y2: sy(MAX),
+        stroke: '#e8e8e4', 'stroke-width': 1
+      }));
+      gGrid.appendChild(el('line', {
+        x1: sx(MIN), y1: sy(i), x2: sx(MAX), y2: sy(i),
+        stroke: '#e8e8e4', 'stroke-width': 1
+      }));
+    }
+    gGrid.appendChild(el('line', { x1: sx(MIN), y1: sy(0), x2: sx(MAX), y2: sy(0), stroke: '#8d8d88', 'stroke-width': 2 }));
+    gGrid.appendChild(el('line', { x1: sx(0), y1: sy(MIN), x2: sx(0), y2: sy(MAX), stroke: '#8d8d88', 'stroke-width': 2 }));
+
+    for (i = MIN; i <= MAX; i += 2) {
+      if (i === 0) continue;
+      var tx = el('text', { x: sx(i), y: sy(0) + 15, 'text-anchor': 'middle', 'font-size': 11, fill: '#7c7c78' });
+      tx.textContent = neg(i);
+      gGrid.appendChild(tx);
+      var ty = el('text', { x: sx(0) - 7, y: sy(i) + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#7c7c78' });
+      ty.textContent = neg(i);
+      gGrid.appendChild(ty);
+    }
+  })();
+
+  /* ---------- geometry ---------- */
+
+  // Clip the infinite line through p,q to the visible box.
+  function clipLine(p, q) {
+    var dx = q.x - p.x, dy = q.y - p.y;
+    var t0 = -1e9, t1 = 1e9;
+    var P = [-dx, dx, -dy, dy];
+    var Q = [p.x - MIN, MAX - p.x, p.y - MIN, MAX - p.y];
+    for (var i = 0; i < 4; i++) {
+      if (P[i] === 0) { if (Q[i] < 0) return null; }
+      else {
+        var t = Q[i] / P[i];
+        if (P[i] < 0) { if (t > t0) t0 = t; } else { if (t < t1) t1 = t; }
+      }
+    }
+    if (t0 > t1) return null;
+    return { a: { x: p.x + t0 * dx, y: p.y + t0 * dy }, b: { x: p.x + t1 * dx, y: p.y + t1 * dy } };
+  }
+
+  // Order points left-to-right so run is always positive (or zero).
+  function ordered(pts) {
+    var a = pts[0], b = pts[1];
+    if (b.x < a.x || (b.x === a.x && b.y < a.y)) { return [b, a]; }
+    return [a, b];
+  }
+
+  function slopeInfo(pts) {
+    var o = ordered(pts);
+    var rise = o[1].y - o[0].y;
+    var run = o[1].x - o[0].x;
+    var info = { left: o[0], right: o[1], rise: rise, run: run };
+    if (run === 0) {
+      info.defined = false;
+      info.value = null;
+      info.text = 'undefined';
+      info.direction = 'Straight up and down';
+      return info;
+    }
+    info.defined = true;
+    info.value = rise / run;
+    var g = gcd(rise, run) || 1;
+    var sr = rise / g, sn = run / g;
+    info.text = (sn === 1) ? neg(sr) : neg(sr) + '/' + neg(sn);
+    info.decimal = (sn === 1) ? null : neg(Math.round(info.value * 100) / 100);
+    if (rise > 0) info.direction = 'Goes up from left to right';
+    else if (rise < 0) info.direction = 'Goes down from left to right';
+    else info.direction = 'Flat \u2014 no change';
+    return info;
+  }
+
+  /* ---------- drawing ---------- */
+
+  function labelText(x, y, str, color, anchor) {
+    var t = el('text', {
+      x: x, y: y, 'text-anchor': anchor, 'font-size': 14, 'font-weight': 700,
+      fill: color, stroke: '#ffffff', 'stroke-width': 4, 'stroke-linejoin': 'round'
+    });
+    t.setAttribute('style', 'paint-order:stroke fill');
+    t.textContent = str;
+    return t;
+  }
+
+  function drawLine(key) {
+    var L = lines[key];
+    var clipped = clipLine(L.pts[0], L.pts[1]);
+    if (clipped) {
+      gArt.appendChild(el('line', {
+        x1: sx(clipped.a.x), y1: sy(clipped.a.y),
+        x2: sx(clipped.b.x), y2: sy(clipped.b.y),
+        stroke: L.color, 'stroke-width': 3, 'stroke-linecap': 'round', opacity: 0.9
+      }));
+    }
+  }
+
+  function drawTriangle(key) {
+    var L = lines[key];
+    var info = slopeInfo(L.pts);
+    if (!info.defined) return;
+
+    var left = info.left, right = info.right;
+    var cornerX = sx(right.x), cornerY = sy(left.y);
+    var runPx = Math.abs(sx(right.x) - sx(left.x));
+    var risePx = Math.abs(sy(right.y) - sy(left.y));
+
+    gArt.appendChild(el('line', {
+      x1: sx(left.x), y1: sy(left.y), x2: cornerX, y2: cornerY,
+      stroke: L.color, 'stroke-width': 2, 'stroke-dasharray': '5 4', opacity: 0.75
+    }));
+    if (info.rise !== 0) {
+      gArt.appendChild(el('line', {
+        x1: cornerX, y1: cornerY, x2: sx(right.x), y2: sy(right.y),
+        stroke: L.color, 'stroke-width': 2, 'stroke-dasharray': '5 4', opacity: 0.75
+      }));
+    }
+
+    // Offsets scale off leg length so short legs don't collide and long legs don't drift.
+    var runOff = Math.max(15, Math.min(26, runPx * 0.14));
+    var riseOff = Math.max(14, Math.min(24, risePx * 0.14));
+
+    var runMidX = (sx(left.x) + cornerX) / 2;
+    var runLabelY = (info.rise >= 0) ? cornerY + runOff + 5 : cornerY - runOff;
+    runLabelY = Math.max(16, Math.min(548, runLabelY));
+    gArt.appendChild(labelText(runMidX, runLabelY, 'run ' + neg(info.run), L.color, 'middle'));
+
+    if (info.rise !== 0) {
+      var riseMidY = (cornerY + sy(right.y)) / 2 + 5;
+      var riseX = cornerX + riseOff;
+      var anchor = 'start';
+      if (riseX > 470) { riseX = cornerX - riseOff; anchor = 'end'; }
+      var riseStr = 'rise ' + (info.rise > 0 ? '+' + info.rise : neg(info.rise));
+      gArt.appendChild(labelText(riseX, riseMidY, riseStr, L.color, anchor));
+    }
+  }
+
+  function drawHandles(key) {
+    var L = lines[key];
+    for (var i = 0; i < 2; i++) {
+      var p = L.pts[i];
+      gArt.appendChild(el('circle', {
+        cx: sx(p.x), cy: sy(p.y), r: 9,
+        fill: '#ffffff', stroke: L.color, 'stroke-width': 3.5
+      }));
+      var hit = el('circle', {
+        cx: sx(p.x), cy: sy(p.y), r: 22,
+        fill: '#000000', opacity: 0, cursor: 'grab'
+      });
+      hit.setAttribute('data-line', key);
+      hit.setAttribute('data-idx', String(i));
+      gArt.appendChild(hit);
+    }
+  }
+
+  /* ---------- readouts ---------- */
+
+  function renderCard(key) {
+    var L = lines[key];
+    var info = slopeInfo(L.pts);
+    var card = document.getElementById('card' + key);
+    card.style.borderLeftColor = L.color;
+
+    var detail;
+    if (!info.defined) {
+      detail = 'rise ' + neg(info.rise) + ', run 0<br>The run is 0, and you cannot divide by 0.';
+    } else {
+      detail = 'rise ' + (info.rise > 0 ? '+' + info.rise : neg(info.rise)) + ', run ' + info.run +
+        '<br>' + info.direction +
+        '<br>Steepness: ' + neg(Math.round(Math.abs(info.value) * 100) / 100);
+    }
+
+    card.innerHTML =
+      '<div class="name" style="color:' + L.color + '">' + L.label + '</div>' +
+      '<div class="big" style="color:' + L.color + '">slope = ' + info.text +
+        (info.defined && info.decimal ? ' <span style="font-size:16px;font-weight:600">(' + info.decimal + ')</span>' : '') +
+      '</div>' +
+      '<div class="detail">' + detail + '</div>';
+  }
+
+  function renderCompare() {
+    var box = document.getElementById('compare');
+
+    if (!showB) {
+      box.className = 'compare quiet';
+      box.innerHTML = 'Turn on Line B to put a second slope on this same grid and compare them.';
+      return;
+    }
+    box.className = 'compare';
+
+    var a = slopeInfo(lines.A.pts);
+    var b = slopeInfo(lines.B.pts);
+    var msg;
+
+    if (!a.defined || !b.defined) {
+      var which = !a.defined ? 'Line A' : 'Line B';
+      msg = '<b>' + which + ' is vertical, so it has no slope value.</b> Every other line on this grid can be ranked by steepness, but a vertical line cannot.';
+    } else {
+      var sa = Math.abs(a.value), sb = Math.abs(b.value);
+      var round = function (n) { return Math.round(n * 100) / 100; };
+      if (Math.abs(sa - sb) < 1e-9) {
+        if (Math.abs(a.value - b.value) < 1e-9) {
+          msg = '<b>Same slope, so the lines are parallel.</b> Same steepness, same direction.';
+        } else {
+          msg = '<b>Same steepness, opposite directions.</b> Both are ' + neg(round(sa)) +
+            ' away from flat \u2014 one climbs, one falls.';
+        }
+      } else {
+        var steeper = sa > sb ? 'Line A' : 'Line B';
+        var bigSteep = sa > sb ? sa : sb, smallSteep = sa > sb ? sb : sa;
+        msg = '<b>' + steeper + ' is steeper.</b> Its distance from flat is ' + neg(round(bigSteep)) +
+          ', compared with ' + neg(round(smallSteep)) + '.';
+        var biggerValue = a.value > b.value ? 'A' : 'B';
+        var steeperKey = sa > sb ? 'A' : 'B';
+        if (biggerValue !== steeperKey) {
+          msg += ' Notice that Line ' + biggerValue + ' has the larger slope number (' +
+            neg(round(Math.max(a.value, b.value))) + ' is more than ' + neg(round(Math.min(a.value, b.value))) +
+            '), but Line ' + steeperKey + ' is the steeper line. The sign tells you the direction, not the steepness.';
+        }
+      }
+    }
+    box.innerHTML = msg;
+  }
+
+  /* ---------- main render ---------- */
+
+  function render() {
+    while (gArt.firstChild) { gArt.removeChild(gArt.firstChild); }
+
+    drawLine('A');
+    if (showB) { drawLine('B'); }
+    drawTriangle('A');
+    if (showB) { drawTriangle('B'); }
+    drawHandles('A');
+    if (showB) { drawHandles('B'); }
+
+    renderCard('A');
+    document.getElementById('cardB').style.display = showB ? '' : 'none';
+    if (showB) { renderCard('B'); }
+
+    renderCompare();
+  }
+
+  /* ---------- dragging ---------- */
+
+  var drag = null;
+
+  function toGrid(evt) {
+    var r = SVG.getBoundingClientRect();
+    var scale = 560 / r.width;
+    var px = (evt.clientX - r.left) * scale;
+    var py = (evt.clientY - r.top) * scale;
+    return { x: (px - OX) / U, y: (OY - py) / U };
+  }
+
+  SVG.addEventListener('pointerdown', function (evt) {
+    var t = evt.target;
+    if (!t || !t.getAttribute) return;
+    var key = t.getAttribute('data-line');
+    if (!key) return;
+    if (key === 'B' && !showB) return;
+    drag = { key: key, idx: parseInt(t.getAttribute('data-idx'), 10) };
+    if (SVG.setPointerCapture) { SVG.setPointerCapture(evt.pointerId); }
+    evt.preventDefault();
+  });
+
+  SVG.addEventListener('pointermove', function (evt) {
+    if (!drag) return;
+    var g = toGrid(evt);
+    var nx = Math.max(MIN, Math.min(MAX, Math.round(g.x)));
+    var ny = Math.max(MIN, Math.min(MAX, Math.round(g.y)));
+    var other = lines[drag.key].pts[1 - drag.idx];
+    if (nx === other.x && ny === other.y) return; // two points can't sit on top of each other
+    var cur = lines[drag.key].pts[drag.idx];
+    if (cur.x === nx && cur.y === ny) return;
+    cur.x = nx; cur.y = ny;
+    render();
+    evt.preventDefault();
+  });
+
+  function endDrag(evt) {
+    if (!drag) return;
+    drag = null;
+    if (SVG.releasePointerCapture && evt.pointerId !== undefined) {
+      try { SVG.releasePointerCapture(evt.pointerId); } catch (e) {}
+    }
+  }
+  SVG.addEventListener('pointerup', endDrag);
+  SVG.addEventListener('pointercancel', endDrag);
+
+  CHK.addEventListener('change', function () {
+    showB = !!CHK.checked;
+    render();
+  });
+
+  document.getElementById('reset').addEventListener('click', function () {
+    lines.A.pts = copyPts(START.A);
+    lines.B.pts = copyPts(START.B);
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
