@@ -1,0 +1,164 @@
+<h2 style="font-size:13px; font-weight:400; color:#888; margin:0 0 8px 0;">An interactive triangle where two angles are controlled by sliders. Checking the box extends the base into a full line and draws a second line through the top vertex parallel to it, revealing alternate interior angles at the top matching x and y, and exterior angles at the base supplementary to x and y.</h2>
+<div style="padding:0.5rem 0 0">
+<div id="rowx" style="display:flex;align-items:center;gap:9px;margin:0 0 8px">
+  <input type="checkbox" id="lx" title="Fix angle x" style="width:16px;height:16px;cursor:pointer;margin:0">
+  <label for="sx" style="font-size:14px;color:#378ADD;font-weight:500;min-width:56px">Angle x</label>
+  <input type="number" id="nx" min="0" max="180" step="1" value="55" style="width:62px;text-align:center">
+  <input type="range" id="sx" min="0" max="180" step="1" value="55" style="flex:1">
+</div>
+<div id="rowy" style="display:flex;align-items:center;gap:9px;margin:0 0 8px">
+  <input type="checkbox" id="ly" title="Fix angle y" style="width:16px;height:16px;cursor:pointer;margin:0">
+  <label for="sy" style="font-size:14px;color:#BA7517;font-weight:500;min-width:56px">Angle y</label>
+  <input type="number" id="ny" min="0" max="180" step="1" value="70" style="width:62px;text-align:center">
+  <input type="range" id="sy" min="0" max="180" step="1" value="70" style="flex:1">
+</div>
+<div id="rowz" style="display:flex;align-items:center;gap:9px;margin:0 0 10px">
+  <input type="checkbox" id="lz" title="Fix angle z" style="width:16px;height:16px;cursor:pointer;margin:0">
+  <label for="sz" style="font-size:14px;color:#0F6E56;font-weight:500;min-width:56px">Angle z</label>
+  <input type="number" id="nz" min="0" max="180" step="1" value="55" style="width:62px;text-align:center">
+  <input type="range" id="sz" min="0" max="180" step="1" value="55" style="flex:1">
+</div>
+<div style="display:flex;align-items:center;gap:16px;margin:0 0 2px;flex-wrap:wrap">
+  <label style="display:flex;align-items:center;gap:7px;font-size:14px;color:#374151;cursor:pointer;user-select:none">
+    <input type="checkbox" id="reveal" style="width:16px;height:16px;cursor:pointer;margin:0">
+    Reveal the parallel lines and matching angles
+  </label>
+  <button id="resetBtn" style="font-size:13px;font-weight:500;padding:5px 12px;border-radius:6px;border:1px solid #9ca3af;background:transparent;color:#1f2937;cursor:pointer">Reset to 60°-60°-60°</button>
+  <span id="eq" style="font-size:16px;font-weight:500;color:#1f2937"></span>
+</div>
+<div id="msg" style="font-size:13px;min-height:20px;margin:0 0 2px;color:#6b7280"></div>
+<svg width="100%" viewBox="0 0 680 420">
+  <g id="triWrap" style="transform-origin:0 0; transform:translate(340px,215px) scale(1);">
+    <g id="triInner"></g>
+    <g id="overlayInner" style="opacity:0; transition:opacity .4s ease;"></g>
+  </g>
+</svg>
+</div>
+<script>
+(function(){
+var C={x:"#378ADD",y:"#EF9F27",z:"#1D9E75",extA:"#A855F7",extB:"#DB2777"};
+var LBL={x:"#378ADD",y:"#BA7517",z:"#0F6E56",extA:"#9333EA",extB:"#BE185D"};
+var COL_LINE="#6b7280", COL_PRIMARY="#1f2937", COL_SURFACE="#374151", COL_DANGER="#dc2626";
+var st={x:55,y:70,z:55}, lk={x:false,y:false,z:false}, KEYS=["x","y","z"], rad=Math.PI/180;
+var el={}, msg=document.getElementById('msg'), rv=document.getElementById('reveal');
+var overlayInner=document.getElementById('overlayInner');
+KEYS.forEach(function(k){ el[k]={s:document.getElementById('s'+k), n:document.getElementById('n'+k), l:document.getElementById('l'+k), r:document.getElementById('row'+k)}; });
+function P(vx,vy,r,a){return [vx+r*Math.cos(a), vy-r*Math.sin(a)];}
+function dist(p,q){return Math.hypot(p[0]-q[0],p[1]-q[1]);}
+function clampR(v){return Math.max(14,Math.min(34,v));}
+function normSpan(a1,a2){ var d=a2-a1; while(d>Math.PI)d-=2*Math.PI; while(d<=-Math.PI)d+=2*Math.PI; return d; }
+function arcSeg(vx,vy,r,a1,a2){
+  var span=a2-a1, large=Math.abs(span)>Math.PI?1:0, sweep=span>0?0:1;
+  var p1=P(vx,vy,r,a1), p2=P(vx,vy,r,a2);
+  return {d:"M"+p1[0].toFixed(1)+","+p1[1].toFixed(1)+" A"+r+","+r+" 0 "+large+" "+sweep+" "+p2[0].toFixed(1)+","+p2[1].toFixed(1)};
+}
+function wedge(vx,vy,r,a1,a2){
+  var s=arcSeg(vx,vy,r,a1,a2), p1=P(vx,vy,r,a1);
+  return "M"+vx+","+vy+" L"+p1[0].toFixed(1)+","+p1[1].toFixed(1)+" "+s.d.split(" ").slice(1).join(" ")+" Z";
+}
+function txt(x,y,s,c,sz,w){return '<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-size="'+(sz||14)+'" font-weight="'+(w||500)+'" fill="'+c+'">'+s+'</text>';}
+function sector(vx,vy,r,a1,a2,col,label,lcol,lsz){
+  var o='<path d="'+wedge(vx,vy,r,a1,a2)+'" fill="'+col+'" fill-opacity="0.22" stroke="'+col+'" stroke-width="1.5" stroke-linejoin="round"/>';
+  var lp=P(vx,vy,r+20,(a1+a2)/2);
+  return o+txt(lp[0],lp[1],label,lcol,lsz||13,600);
+}
+function mark(v,p1,p2,val,col,name,r){
+  var a1=Math.atan2(v[1]-p1[1],p1[0]-v[0]), a2=Math.atan2(v[1]-p2[1],p2[0]-v[0]);
+  var d=normSpan(a1,a2);
+  var o='<path d="'+wedge(v[0],v[1],r,a1,a1+d)+'" fill="'+col+'" fill-opacity="0.18"/>';
+  o+='<path d="'+arcSeg(v[0],v[1],r,a1,a1+d).d+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linecap="round"/>';
+  var lp=P(v[0],v[1],r+24,a1+d/2);
+  return o+txt(lp[0],lp[1],name+" = "+val+"°",col,14,500);
+}
+function setAngle(k,v){
+  v=Math.max(0,Math.min(180,Math.round(v)));
+  var others=KEYS.filter(function(a){return a!==k;});
+  var free=others.filter(function(a){return !lk[a];});
+  st[k]=v;
+  if(free.length===2){
+    var rem=180-v, sum=st[free[0]]+st[free[1]];
+    var n1=sum>0?Math.round(st[free[0]]/sum*rem):Math.round(rem/2);
+    n1=Math.max(0,Math.min(rem,n1));
+    st[free[0]]=n1; st[free[1]]=rem-n1;
+  } else if(free.length===1){
+    var locked=others.filter(function(a){return lk[a];})[0];
+    st[free[0]]=Math.max(0,180-v-st[locked]);
+  }
+  sync();
+}
+function sync(){
+  KEYS.forEach(function(k){
+    el[k].s.value=st[k]; el[k].n.value=st[k];
+    el[k].s.disabled=lk[k]; el[k].n.disabled=lk[k];
+    el[k].r.style.opacity=lk[k]?0.5:1;
+  });
+  var tot=st.x+st.y+st.z;
+  document.getElementById('eq').innerHTML='<span style="color:'+LBL.x+'">'+st.x+'°</span> + <span style="color:'+LBL.y+'">'+st.y+'°</span> + <span style="color:'+LBL.z+'">'+st.z+'°</span> = <span style="color:'+(tot===180?COL_PRIMARY:COL_DANGER)+'">'+tot+'°</span>';
+  draw(tot);
+}
+function draw(tot){
+  var X=st.x, Y=st.y, Z=st.z, g='', ov='', note='', danger=(tot!==180);
+  var closes=(X>0 && Y>0 && X+Y<180);
+  if(closes){
+    var T=180-X-Y, c=320, b=c*Math.sin(Y*rad)/Math.sin(T*rad);
+    var A=[0,0], B=[c,0], Cp=[b*Math.cos(X*rad),-b*Math.sin(X*rad)];
+    var xs=[A[0],B[0],Cp[0]], ys=[A[1],B[1],Cp[1]];
+    var mnx=Math.min.apply(null,xs), mxx=Math.max.apply(null,xs), mny=Math.min.apply(null,ys), mxy=Math.max.apply(null,ys);
+    var k=Math.min(430/(mxx-mnx),210/Math.max(mxy-mny,1),1.15);
+    function T2(p){return [(p[0]-(mnx+mxx)/2)*k,(p[1]-(mny+mxy)/2)*k];}
+    A=T2(A); B=T2(B); Cp=T2(Cp);
+    var lenAB=dist(A,B), lenAC=dist(A,Cp), lenBC=dist(B,Cp);
+    var rX=clampR(0.3*Math.min(lenAB,lenAC)), rY=clampR(0.3*Math.min(lenAB,lenBC)), rZ=clampR(0.3*Math.min(lenAC,lenBC));
+    g+='<polygon points="'+A[0].toFixed(1)+','+A[1].toFixed(1)+' '+B[0].toFixed(1)+','+B[1].toFixed(1)+' '+Cp[0].toFixed(1)+','+Cp[1].toFixed(1)+'" fill="'+COL_SURFACE+'" stroke="'+COL_LINE+'" stroke-width="1.5" stroke-linejoin="round"/>';
+    g+=mark(A,B,Cp,X,C.x,"x",rX);
+    g+=mark(B,Cp,A,Y,C.y,"y",rY);
+    g+=mark(Cp,A,B,T,C.z,"z",rZ);
+    if(T!==Z) note='The figure closes at z = '+T+'°, not the '+Z+'° you set. Three angles only make a triangle when they total 180°.';
+    var Lext=110, rOuter=rZ+16;
+    ov+='<line x1="'+(A[0]-Lext).toFixed(1)+'" y1="'+A[1].toFixed(1)+'" x2="'+A[0].toFixed(1)+'" y2="'+A[1].toFixed(1)+'" stroke="'+COL_LINE+'" stroke-width="1.5" stroke-dasharray="6 5"/>';
+    ov+='<line x1="'+B[0].toFixed(1)+'" y1="'+B[1].toFixed(1)+'" x2="'+(B[0]+Lext).toFixed(1)+'" y2="'+B[1].toFixed(1)+'" stroke="'+COL_LINE+'" stroke-width="1.5" stroke-dasharray="6 5"/>';
+    ov+='<line x1="'+(Cp[0]-Lext).toFixed(1)+'" y1="'+Cp[1].toFixed(1)+'" x2="'+(Cp[0]+Lext).toFixed(1)+'" y2="'+Cp[1].toFixed(1)+'" stroke="'+COL_LINE+'" stroke-width="1.5" stroke-dasharray="6 5"/>';
+    var aCA=Math.atan2(Cp[1]-A[1],A[0]-Cp[0]), aCB=Math.atan2(Cp[1]-B[1],B[0]-Cp[0]);
+    var dLeft=normSpan(Math.PI,aCA), dRight=normSpan(aCB,0);
+    ov+=sector(Cp[0],Cp[1],rOuter,Math.PI,Math.PI+dLeft,C.x,"x = "+X+"°",LBL.x,12);
+    ov+=sector(Cp[0],Cp[1],rOuter,aCB,aCB+dRight,C.y,"y = "+Y+"°",LBL.y,12);
+    var aAC=Math.atan2(A[1]-Cp[1],Cp[0]-A[0]), aBC=Math.atan2(B[1]-Cp[1],Cp[0]-B[0]);
+    var dExtA=normSpan(Math.PI,aAC), dExtB=normSpan(0,aBC);
+    ov+=sector(A[0],A[1],rX+18,Math.PI,Math.PI+dExtA,C.extA,(180-X)+"°",LBL.extA,12);
+    ov+=sector(B[0],B[1],rY+18,0,dExtB,C.extB,(180-Y)+"°",LBL.extB,12);
+  } else {
+    var A2=[-150,95], B2=[150,95], L=195;
+    var pa=P(A2[0],A2[1],L,X*rad), pb=P(B2[0],B2[1],L,(180-Y)*rad);
+    g+='<line x1="'+A2[0]+'" y1="'+A2[1]+'" x2="'+B2[0]+'" y2="'+B2[1]+'" stroke="'+COL_LINE+'" stroke-width="1.5"/>';
+    g+='<line x1="'+A2[0]+'" y1="'+A2[1]+'" x2="'+pa[0].toFixed(1)+'" y2="'+pa[1].toFixed(1)+'" stroke="'+COL_LINE+'" stroke-width="1.5" stroke-dasharray="6 5"/>';
+    g+='<line x1="'+B2[0]+'" y1="'+B2[1]+'" x2="'+pb[0].toFixed(1)+'" y2="'+pb[1].toFixed(1)+'" stroke="'+COL_LINE+'" stroke-width="1.5" stroke-dasharray="6 5"/>';
+    g+=mark(A2,B2,pa,X,C.x,"x",X<40?26:38);
+    g+=mark(B2,pb,A2,Y,C.y,"y",Y<40?26:38);
+    if(X===0||Y===0) note='A 0° angle flattens the figure onto the line — the two sides lie on top of each other and no triangle exists.';
+    else note='These two sides spread apart and never meet, so the third corner never forms. x + y is already '+(X+Y)+'°.';
+    danger=true;
+  }
+  document.getElementById('triInner').innerHTML=g;
+  overlayInner.innerHTML=ov;
+  msg.textContent=note; msg.style.color=danger?COL_DANGER:COL_LINE;
+}
+KEYS.forEach(function(k){
+  el[k].s.addEventListener('input',function(){ setAngle(k,+this.value); });
+  el[k].n.addEventListener('change',function(){
+    var v=parseInt(this.value,10);
+    if(isNaN(v)||v<0||v>180){ this.value=st[k]; msg.textContent='Enter a whole number from 0 to 180.'; msg.style.color=COL_DANGER; return; }
+    setAngle(k,v);
+  });
+  el[k].n.addEventListener('keydown',function(e){ if(e.key==='Enter') this.blur(); });
+  el[k].l.addEventListener('change',function(){ lk[k]=this.checked; sync(); });
+});
+rv.addEventListener('change',function(){ overlayInner.style.opacity = this.checked?1:0; });
+document.getElementById('resetBtn').addEventListener('click',function(){
+  st={x:60,y:60,z:60}; lk={x:false,y:false,z:false};
+  sync();
+});
+KEYS.forEach(function(k){ lk[k]=el[k].l.checked; });
+overlayInner.style.opacity = rv.checked ? 1 : 0;
+sync();
+})();
+</script>
