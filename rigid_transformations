@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rigid Transformations Explorer (8.G.A.3)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 1040px;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    p.subtitle {
+      font-size: 0.875rem;
+      color: #475569;
+      margin-top: 2px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 840px) {
+      .workspace {
+        grid-template-columns: 1.15fr 0.85fr;
+      }
+    }
+
+    .canvas-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #ffffff;
+      border: 1px solid #94a3b8;
+      border-radius: 8px;
+      padding: 12px;
+      position: relative;
+    }
+
+    svg#plane {
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 1 / 1;
+      user-select: none;
+      background-color: #ffffff;
+      transition: viewBox 0.2s ease-out;
+    }
+
+    .canvas-label {
+      paint-order: stroke fill;
+      stroke: #ffffff;
+      stroke-width: 4px;
+      stroke-linejoin: round;
+    }
+
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-card {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+
+    .segmented-control {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      background-color: #e2e8f0;
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    .seg-btn {
+      min-height: 44px;
+      border: none;
+      background-color: transparent;
+      color: #334155;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .seg-btn.active {
+      background-color: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    .sub-options {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .choice-btn {
+      flex: 1 1 calc(33.333% - 6px);
+      min-height: 44px;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #1e293b;
+      cursor: pointer;
+    }
+
+    .choice-btn.active {
+      background-color: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 44px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      background-color: #cbd5e1;
+      border-radius: 3px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 24px;
+      width: 24px;
+      border-radius: 50%;
+      background-color: #2563eb;
+      margin-top: -9px;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      text-align: left;
+    }
+
+    .data-table th, .data-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .data-table th {
+      color: #475569;
+      font-weight: 700;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+
+    .tag-pre {
+      background-color: #e2e8f0;
+      color: #1e293b;
+    }
+
+    .tag-post {
+      background-color: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .tag-idle {
+      background-color: #f1f5f9;
+      color: #64748b;
+      font-style: italic;
+      font-weight: 500;
+    }
+
+    .rule-box {
+      background-color: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .rule-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #1e40af;
+      letter-spacing: 0.05em;
+    }
+
+    .rule-content {
+      font-family: monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1d4ed8;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      cursor: pointer;
+    }
+
+    .toggle-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: #2563eb;
+      cursor: pointer;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <header>
+      <h1>Rigid Transformations Explorer</h1>
+      <p class="subtitle">Standard 8.G.A.3 • Translations, Reflections, and Rotations</p>
+    </header>
+
+    <div class="workspace">
+      <!-- High-Contrast Adaptive Coordinate Plane -->
+      <div class="canvas-panel">
+        <svg id="plane" viewBox="-225 -225 450 450">
+          <g id="grid-lines"></g>
+          <g id="scaffolds"></g>
+          <g id="axes"></g>
+          <g id="shapes"></g>
+          <g id="labels"></g>
+        </svg>
+
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background-color: #475569;"></div>
+            <span>Pre-Image</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background-color: #1d4ed8;"></div>
+            <span>Transformed Image</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Panel -->
+      <div class="control-panel">
+        
+        <!-- Shape Selection -->
+        <div class="section-card">
+          <div class="section-title">1. Choose Geometry</div>
+          <div class="segmented-control" role="tablist">
+            <button class="seg-btn" id="shape-point" onclick="setShapeType('point')">Point</button>
+            <button class="seg-btn" id="shape-segment" onclick="setShapeType('segment')">Segment</button>
+            <button class="seg-btn active" id="shape-triangle" onclick="setShapeType('triangle')">Triangle</button>
+          </div>
+        </div>
+
+        <!-- Transformation Selector -->
+        <div class="section-card">
+          <div class="section-title">2. Transformation Type</div>
+          <div class="segmented-control" role="tablist">
+            <button class="seg-btn active" id="mode-translate" onclick="setMode('translate')">Translate</button>
+            <button class="seg-btn" id="mode-reflect" onclick="setMode('reflect')">Reflect</button>
+            <button class="seg-btn" id="mode-rotate" onclick="setMode('rotate')">Rotate</button>
+          </div>
+
+          <!-- Translation Sub-Controls (Expanded Range for Rich Zoom Testing) -->
+          <div id="sub-translate" class="sub-options">
+            <div class="slider-row">
+              <div class="slider-header">
+                <span>Horizontal Shift (Δx)</span>
+                <span id="val-tx">+0</span>
+              </div>
+              <input type="range" id="slider-tx" min="-10" max="10" step="1" value="0" oninput="updateState()">
+            </div>
+            <div class="slider-row">
+              <div class="slider-header">
+                <span>Vertical Shift (Δy)</span>
+                <span id="val-ty">+0</span>
+              </div>
+              <input type="range" id="slider-ty" min="-10" max="10" step="1" value="0" oninput="updateState()">
+            </div>
+          </div>
+
+          <!-- Reflection Sub-Controls -->
+          <div id="sub-reflect" class="sub-options" style="display: none;">
+            <div class="btn-group">
+              <button class="choice-btn active" id="ref-x" onclick="setReflectAxis('x')">x-axis</button>
+              <button class="choice-btn" id="ref-y" onclick="setReflectAxis('y')">y-axis</button>
+              <button class="choice-btn" id="ref-yx" onclick="setReflectAxis('yx')">Line y = x</button>
+            </div>
+          </div>
+
+          <!-- Rotation Sub-Controls -->
+          <div id="sub-rotate" class="sub-options" style="display: none;">
+            <div class="btn-group">
+              <button class="choice-btn active" id="rot-ccw" onclick="setRotationDirection('ccw')">Counterclockwise ↺</button>
+              <button class="choice-btn" id="rot-cw" onclick="setRotationDirection('cw')">Clockwise ↻</button>
+            </div>
+            <div class="btn-group">
+              <button class="choice-btn active" id="rot-90" onclick="setRotationAngle(90)">90°</button>
+              <button class="choice-btn" id="rot-180" onclick="setRotationAngle(180)">180°</button>
+              <button class="choice-btn" id="rot-270" onclick="setRotationAngle(270)">270°</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coordinates Output Table -->
+        <div class="section-card">
+          <div class="section-title">3. Coordinate Mapping</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Vertex</th>
+                <th>Pre-Image (x, y)</th>
+                <th>Image (x', y')</th>
+              </tr>
+            </thead>
+            <tbody id="coord-table-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Pedagogical Reveal Card -->
+        <div class="section-card">
+          <label class="toggle-row">
+            <span class="toggle-label">Reveal Algebraic Coordinate Rule</span>
+            <input type="checkbox" id="toggle-rule" onchange="toggleRuleDisplay()">
+          </label>
+          <div class="rule-box" id="rule-container" style="display: none;">
+            <div class="rule-title">Coordinate Rule</div>
+            <div class="rule-content" id="rule-text">(x, y) → (x, y)</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const UNIT = 25; // Constant 25px per Cartesian coordinate unit
+
+    // Standard Reference Shapes
+    const SHAPES = {
+      point: [{ id: 'A', x: 2, y: 3 }],
+      segment: [
+        { id: 'A', x: 1, y: 2 },
+        { id: 'B', x: 5, y: 4 }
+      ],
+      triangle: [
+        { id: 'A', x: 1, y: 2 },
+        { id: 'B', x: 5, y: 2 },
+        { id: 'C', x: 2, y: 6 }
+      ]
+    };
+
+    // State Variables
+    let currentShapeType = 'triangle';
+    let currentMode = 'translate';
+    let reflectAxis = 'x';
+    let rotateDirection = 'ccw';
+    let rotateAngle = 90;
+    let currentLimit = 8;
+
+    function renderGrid(limit) {
+      currentLimit = limit;
+      const svg = document.getElementById('plane');
+      const gridG = document.getElementById('grid-lines');
+      const axesG = document.getElementById('axes');
+      gridG.innerHTML = '';
+      axesG.innerHTML = '';
+
+      // Dynamically adjust the SVG Camera ViewBox to zoom out/in
+      const viewBoxPadding = (limit + 1.2) * UNIT;
+      const totalSpan = viewBoxPadding * 2;
+      svg.setAttribute('viewBox', `${-viewBoxPadding} ${-viewBoxPadding} ${totalSpan} ${totalSpan}`);
+
+      const extent = limit * UNIT;
+
+      for (let i = -limit; i <= limit; i++) {
+        const p = i * UNIT;
+        
+        // High-contrast interior grid lines (#cbd5e1)
+        const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        hLine.setAttribute('x1', -extent);
+        hLine.setAttribute('y1', p);
+        hLine.setAttribute('x2', extent);
+        hLine.setAttribute('y2', p);
+        hLine.setAttribute('stroke', '#cbd5e1');
+        hLine.setAttribute('stroke-width', '1');
+        gridG.appendChild(hLine);
+
+        const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        vLine.setAttribute('x1', p);
+        vLine.setAttribute('y1', -extent);
+        vLine.setAttribute('x2', p);
+        vLine.setAttribute('y2', extent);
+        vLine.setAttribute('stroke', '#cbd5e1');
+        vLine.setAttribute('stroke-width', '1');
+        gridG.appendChild(vLine);
+
+        // High-contrast numerical tick labels
+        const step = limit > 10 ? 2 : 2;
+        if (i !== 0 && Math.abs(i) % step === 0) {
+          const xText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          xText.setAttribute('x', p);
+          xText.setAttribute('y', 15);
+          xText.setAttribute('text-anchor', 'middle');
+          xText.setAttribute('font-size', '11');
+          xText.setAttribute('font-weight', '700');
+          xText.setAttribute('fill', '#0f172a');
+          xText.setAttribute('class', 'canvas-label');
+          xText.textContent = i;
+          axesG.appendChild(xText);
+
+          const yText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          yText.setAttribute('x', -8);
+          yText.setAttribute('y', -p + 4);
+          yText.setAttribute('text-anchor', 'end');
+          yText.setAttribute('font-size', '11');
+          yText.setAttribute('font-weight', '700');
+          yText.setAttribute('fill', '#0f172a');
+          yText.setAttribute('class', 'canvas-label');
+          yText.textContent = i;
+          axesG.appendChild(yText);
+        }
+      }
+
+      // High-Contrast Primary Axes (#0f172a, 2.5px)
+      const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      xAxis.setAttribute('x1', -extent - 8);
+      xAxis.setAttribute('y1', 0);
+      xAxis.setAttribute('x2', extent + 8);
+      xAxis.setAttribute('y2', 0);
+      xAxis.setAttribute('stroke', '#0f172a');
+      xAxis.setAttribute('stroke-width', '2.5');
+      axesG.appendChild(xAxis);
+
+      const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      yAxis.setAttribute('x1', 0);
+      yAxis.setAttribute('y1', -extent - 8);
+      yAxis.setAttribute('x2', 0);
+      yAxis.setAttribute('y2', extent + 8);
+      yAxis.setAttribute('stroke', '#0f172a');
+      yAxis.setAttribute('stroke-width', '2.5');
+      axesG.appendChild(yAxis);
+    }
+
+    function setShapeType(type) {
+      currentShapeType = type;
+      document.querySelectorAll('#shape-point, #shape-segment, #shape-triangle').forEach(b => b.classList.remove('active'));
+      document.getElementById('shape-' + type).classList.add('active');
+      updateState();
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('#mode-translate, #mode-reflect, #mode-rotate').forEach(b => b.classList.remove('active'));
+      document.getElementById('mode-' + mode).classList.add('active');
+
+      document.getElementById('sub-translate').style.display = (mode === 'translate') ? 'flex' : 'none';
+      document.getElementById('sub-reflect').style.display = (mode === 'reflect') ? 'flex' : 'none';
+      document.getElementById('sub-rotate').style.display = (mode === 'rotate') ? 'flex' : 'none';
+
+      updateState();
+    }
+
+    function setReflectAxis(axis) {
+      reflectAxis = axis;
+      document.getElementById('ref-x').classList.toggle('active', axis === 'x');
+      document.getElementById('ref-y').classList.toggle('active', axis === 'y');
+      document.getElementById('ref-yx').classList.toggle('active', axis === 'yx');
+      updateState();
+    }
+
+    function setRotationDirection(dir) {
+      rotateDirection = dir;
+      document.getElementById('rot-ccw').classList.toggle('active', dir === 'ccw');
+      document.getElementById('rot-cw').classList.toggle('active', dir === 'cw');
+      updateState();
+    }
+
+    function setRotationAngle(angle) {
+      rotateAngle = angle;
+      document.getElementById('rot-90').classList.toggle('active', angle === 90);
+      document.getElementById('rot-180').classList.toggle('active', angle === 180);
+      document.getElementById('rot-270').classList.toggle('active', angle === 270);
+      updateState();
+    }
+
+    function toggleRuleDisplay() {
+      const show = document.getElementById('toggle-rule').checked;
+      document.getElementById('rule-container').style.display = show ? 'flex' : 'none';
+    }
+
+    function transformCoordinate(x, y) {
+      if (currentMode === 'translate') {
+        const tx = parseInt(document.getElementById('slider-tx').value, 10);
+        const ty = parseInt(document.getElementById('slider-ty').value, 10);
+        return { x: x + tx, y: y + ty };
+      }
+      if (currentMode === 'reflect') {
+        if (reflectAxis === 'x') return { x: x, y: -y };
+        if (reflectAxis === 'y') return { x: -x, y: y };
+        if (reflectAxis === 'yx') return { x: y, y: x };
+      }
+      if (currentMode === 'rotate') {
+        let eff = (rotateDirection === 'ccw') ? rotateAngle : (360 - rotateAngle) % 360;
+        if (eff === 90) return { x: -y, y: x };
+        if (eff === 180) return { x: -x, y: -y };
+        if (eff === 270) return { x: y, y: -x };
+      }
+      return { x, y };
+    }
+
+    function updateState() {
+      const currentVertices = SHAPES[currentShapeType];
+
+      const tx = parseInt(document.getElementById('slider-tx').value, 10);
+      const ty = parseInt(document.getElementById('slider-ty').value, 10);
+      document.getElementById('val-tx').textContent = (tx >= 0 ? '+' : '') + tx;
+      document.getElementById('val-ty').textContent = (ty >= 0 ? '+' : '') + ty;
+
+      const isMotionActive = !(currentMode === 'translate' && tx === 0 && ty === 0);
+
+      // Compute Transformed Vertices
+      const postVertices = currentVertices.map(v => {
+        const t = transformCoordinate(v.x, v.y);
+        return { id: v.id + "'", x: t.x, y: t.y };
+      });
+
+      // Adaptive Dynamic Coordinate Framing (Auto-Zoom)
+      let maxAbs = 8;
+      currentVertices.forEach(v => {
+        maxAbs = Math.max(maxAbs, Math.abs(v.x), Math.abs(v.y));
+      });
+      if (isMotionActive) {
+        postVertices.forEach(v => {
+          maxAbs = Math.max(maxAbs, Math.abs(v.x), Math.abs(v.y));
+        });
+      }
+
+      let requiredLimit = Math.max(8, Math.ceil(maxAbs));
+      if (requiredLimit % 2 !== 0) requiredLimit += 1; // Keep limits even for symmetric ticks
+
+      // Re-render and zoom viewport if bounds exceeded
+      if (requiredLimit !== currentLimit) {
+        renderGrid(requiredLimit);
+      }
+
+      // Reflection Scaffold Line y = x
+      const scaffoldsG = document.getElementById('scaffolds');
+      scaffoldsG.innerHTML = '';
+      if (currentMode === 'reflect' && reflectAxis === 'yx') {
+        const extent = currentLimit * UNIT;
+        const lineYX = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        lineYX.setAttribute('x1', -extent);
+        lineYX.setAttribute('y1', extent);
+        lineYX.setAttribute('x2', extent);
+        lineYX.setAttribute('y2', -extent);
+        lineYX.setAttribute('stroke', '#c2410c');
+        lineYX.setAttribute('stroke-width', '2');
+        lineYX.setAttribute('stroke-dasharray', '6 4');
+        scaffoldsG.appendChild(lineYX);
+
+        const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        lbl.setAttribute('x', extent - 12);
+        lbl.setAttribute('y', -extent + 20);
+        lbl.setAttribute('fill', '#c2410c');
+        lbl.setAttribute('font-size', '12');
+        lbl.setAttribute('font-weight', '700');
+        lbl.setAttribute('class', 'canvas-label');
+        lbl.textContent = 'y = x';
+        scaffoldsG.appendChild(lbl);
+      }
+
+      // Render Geometry
+      const shapesG = document.getElementById('shapes');
+      shapesG.innerHTML = '';
+      const toSvgCoords = (pts) => pts.map(p => `${p.x * UNIT},${-p.y * UNIT}`).join(' ');
+
+      if (currentShapeType === 'triangle') {
+        const prePoly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        prePoly.setAttribute('points', toSvgCoords(currentVertices));
+        prePoly.setAttribute('fill', '#94a3b8');
+        prePoly.setAttribute('fill-opacity', '0.25');
+        prePoly.setAttribute('stroke', '#475569');
+        prePoly.setAttribute('stroke-width', '2');
+        prePoly.setAttribute('stroke-dasharray', '4 4');
+        shapesG.appendChild(prePoly);
+
+        if (isMotionActive) {
+          const postPoly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+          postPoly.setAttribute('points', toSvgCoords(postVertices));
+          postPoly.setAttribute('fill', '#3b82f6');
+          postPoly.setAttribute('fill-opacity', '0.35');
+          postPoly.setAttribute('stroke', '#1d4ed8');
+          postPoly.setAttribute('stroke-width', '2.5');
+          shapesG.appendChild(postPoly);
+        }
+      } else if (currentShapeType === 'segment') {
+        const preLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        preLine.setAttribute('x1', currentVertices[0].x * UNIT);
+        preLine.setAttribute('y1', -currentVertices[0].y * UNIT);
+        preLine.setAttribute('x2', currentVertices[1].x * UNIT);
+        preLine.setAttribute('y2', -currentVertices[1].y * UNIT);
+        preLine.setAttribute('stroke', '#475569');
+        preLine.setAttribute('stroke-width', '2');
+        preLine.setAttribute('stroke-dasharray', '4 4');
+        shapesG.appendChild(preLine);
+
+        if (isMotionActive) {
+          const postLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          postLine.setAttribute('x1', postVertices[0].x * UNIT);
+          postLine.setAttribute('y1', -postVertices[0].y * UNIT);
+          postLine.setAttribute('x2', postVertices[1].x * UNIT);
+          postLine.setAttribute('y2', -postVertices[1].y * UNIT);
+          postLine.setAttribute('stroke', '#1d4ed8');
+          postLine.setAttribute('stroke-width', '2.5');
+          shapesG.appendChild(postLine);
+        }
+      }
+
+      // Render Vertical Points & Labels
+      const labelsG = document.getElementById('labels');
+      labelsG.innerHTML = '';
+
+      const renderPoint = (pt, color, isPre) => {
+        const cx = pt.x * UNIT;
+        const cy = -pt.y * UNIT;
+
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', cx);
+        dot.setAttribute('cy', cy);
+        dot.setAttribute('r', isPre ? '4.5' : '4');
+        dot.setAttribute('fill', color);
+        labelsG.appendChild(dot);
+
+        // Pre-image labels strictly BELOW; Transformed image labels strictly ABOVE
+        const yOffset = isPre ? 17 : -10;
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', cx);
+        text.setAttribute('y', cy + yOffset);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', color);
+        text.setAttribute('font-size', '12');
+        text.setAttribute('font-weight', '700');
+        text.setAttribute('class', 'canvas-label');
+        text.textContent = `${pt.id}(${pt.x}, ${pt.y})`;
+        labelsG.appendChild(text);
+      };
+
+      currentVertices.forEach(v => renderPoint(v, '#475569', true));
+      
+      if (isMotionActive) {
+        postVertices.forEach(v => renderPoint(v, '#1d4ed8', false));
+      }
+
+      // Update Coordinate Mapping Table
+      const tableBody = document.getElementById('coord-table-body');
+      tableBody.innerHTML = '';
+      for (let i = 0; i < currentVertices.length; i++) {
+        const row = document.createElement('tr');
+        const imgCell = isMotionActive 
+          ? `<span class="tag tag-post">(${postVertices[i].x}, ${postVertices[i].y})</span>`
+          : `<span class="tag tag-idle">Apply shift</span>`;
+
+        row.innerHTML = `
+          <td><strong>${currentVertices[i].id} ${isMotionActive ? `→ ${postVertices[i].id}` : ''}</strong></td>
+          <td><span class="tag tag-pre">(${currentVertices[i].x}, ${currentVertices[i].y})</span></td>
+          <td>${imgCell}</td>
+        `;
+        tableBody.appendChild(row);
+      }
+
+      // Update Algebraic Rule
+      let ruleStr = '';
+      if (currentMode === 'translate') {
+        const sx = tx >= 0 ? `+ ${tx}` : `- ${Math.abs(tx)}`;
+        const sy = ty >= 0 ? `+ ${ty}` : `- ${Math.abs(ty)}`;
+        ruleStr = `(x, y) → (x ${sx}, y ${sy})`;
+      } else if (currentMode === 'reflect') {
+        if (reflectAxis === 'x') ruleStr = `(x, y) → (x, -y)`;
+        if (reflectAxis === 'y') ruleStr = `(x, y) → (-x, y)`;
+        if (reflectAxis === 'yx') ruleStr = `(x, y) → (y, x)`;
+      } else if (currentMode === 'rotate') {
+        let eff = (rotateDirection === 'ccw') ? rotateAngle : (360 - rotateAngle) % 360;
+        if (eff === 90) ruleStr = `(x, y) → (-y, x)`;
+        if (eff === 180) ruleStr = `(x, y) → (-x, -y)`;
+        if (eff === 270) ruleStr = `(x, y) → (y, -x)`;
+      }
+      document.getElementById('rule-text').textContent = ruleStr;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('slider-tx').value = 0;
+      document.getElementById('slider-ty').value = 0;
+      document.getElementById('toggle-rule').checked = false;
+      
+      renderGrid(8);
+      updateState();
+    });
+  </script>
+</body>
+</html>
