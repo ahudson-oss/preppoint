@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linear Relationships in Context</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f1f5f9; --line:#cbd5e1;
+    --ink:#0f172a; --ink-soft:#475569; --ink-faint:#64748b;
+    --grid:rgba(100,116,139,.25);
+    --accent:#0369a1; --accent-2:#047857; --accent-3:#be123c; --accent-4:#7e22ce;
+    --accent-fill:rgba(3,105,161,.15);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f172a; --panel:#1e293b; --line:#334155;
+      --ink:#f1f5f9; --ink-soft:#cbd5e1; --ink-faint:#94a3b8;
+      --grid:rgba(148,163,184,.22);
+      --accent:#38bdf8; --accent-2:#34d399; --accent-3:#fb7185; --accent-4:#c084fc;
+      --accent-fill:rgba(56,189,248,.18);
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); padding:18px; min-height:100vh;
+  }
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:1.25rem;font-weight:650}
+  .lede{font-size:.9rem;color:var(--ink-soft);margin-top:4px;max-width:70ch;line-height:1.45}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0}
+  .scenarios{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .scenarios button{min-height:48px;font-size:.9rem}
+  .scenarios button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent);color:var(--ink)}
+
+  .row{display:grid;grid-template-columns:150px 1fr 90px;align-items:center;gap:12px;margin-top:12px}
+  .row:first-of-type{margin-top:0}
+  .row .nm{font-size:.85rem;font-weight:600;color:var(--ink-soft)}
+  .row .val{font-size:.95rem;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;height:44px;cursor:pointer;accent-color:var(--accent)}
+  button{font:inherit;font-size:.85rem;font-weight:650;min-height:44px;padding:0 14px;
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+
+  .sentence{font-size:.95rem;line-height:1.5}
+
+  canvas{width:100%;aspect-ratio:3/2;display:block;
+    background:var(--bg);border:1px solid var(--line);border-radius:10px}
+
+  .readout{margin-top:12px;font-size:.9rem;color:var(--ink-soft);line-height:1.6}
+  .readout b{color:var(--ink);font-weight:650;font-variant-numeric:tabular-nums}
+  .eq{font-size:1rem;margin:6px 0}
+  .eq-abstract{font-size:.82rem;color:var(--ink-faint);margin:-2px 0 8px}
+  .propcheck{font-weight:600}
+  .propcheck.yes{color:var(--accent-2)}
+  .propcheck.no{color:var(--accent-3)}
+
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.88rem}
+  th,td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--ink-soft);font-weight:600}
+  .yint-row td{color:var(--accent-4);font-weight:700}
+
+  footer{margin-top:14px;font-size:.8rem;color:var(--ink-faint);line-height:1.5;max-width:80ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Linear Relationships in Context</h1>
+  <p class="lede">Four situations, same kind of math underneath. Before you touch a slider: will changing the starting amount move the line up and down, or change how steep it is? Will changing the rate do the same thing, or something different?</p>
+
+  <div class="panel">
+    <div class="scenarios" id="scenarios" role="group" aria-label="Choose a situation"></div>
+  </div>
+
+  <div class="panel">
+    <div class="sentence" id="sentence" aria-live="polite"></div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <label class="nm" id="nmM" for="sM">Rate</label>
+      <input type="range" id="sM">
+      <span class="val" id="vM"></span>
+    </div>
+    <div class="row">
+      <label class="nm" id="nmB" for="sB">Starting amount</label>
+      <input type="range" id="sB">
+      <span class="val" id="vB"></span>
+    </div>
+  </div>
+
+  <canvas id="cv"></canvas>
+
+  <div class="readout" id="out" aria-live="polite"></div>
+
+  <footer>The words and units change every time you switch situations — but the slope is still the rate of change, and b is still the starting value, no matter what you call them.</footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ---------- scenario definitions ---------- */
+const SCENARIOS = [
+  {
+    key:"bike", name:"Bike Rental",
+    mLabel:"Cost per hour", mMin:1, mMax:10, mStep:1, mDefault:3,
+    bLabel:"Starting fee", bMin:0, bMax:20, bStep:1, bDefault:5,
+    xLabel:"Hours", xMax:10, yLabel:"Total cost",
+    mFmt:m=>`$${m}/hr`, bFmt:b=>`$${b}`,
+    sentence:(m,b)=> b===0
+      ? `Renting a bike has no starting fee — just $${m} for every hour you ride.`
+      : `Renting a bike costs $${b} to start, plus $${m} for every hour you ride.`
+  },
+  {
+    key:"text", name:"Texting Plan",
+    mLabel:"Cost per text (¢)", mMin:1, mMax:50, mStep:1, mDefault:10,
+    bLabel:"Monthly fee", bMin:0, bMax:20, bStep:1, bDefault:0,
+    xLabel:"Texts sent", xMax:100, yLabel:"Total cost", mIsCents:true,
+    mFmt:m=>`${m}¢/text`, bFmt:b=>`$${b}`,
+    sentence:(m,b)=> b===0
+      ? `Your plan has no monthly fee, but costs ${m}¢ for every text you send.`
+      : `Your plan costs $${b} a month, plus ${m}¢ for every text you send.`
+  },
+  {
+    key:"tutor", name:"Tutoring",
+    mLabel:"Cost per session", mMin:5, mMax:50, mStep:5, mDefault:25,
+    bLabel:"Booking fee", bMin:0, bMax:50, bStep:5, bDefault:10,
+    xLabel:"Sessions", xMax:10, yLabel:"Total cost",
+    mFmt:m=>`$${m}/session`, bFmt:b=>`$${b}`,
+    sentence:(m,b)=> b===0
+      ? `Tutoring has no booking fee — just $${m} per session.`
+      : `Tutoring costs $${b} as a one-time booking fee, plus $${m} per session.`
+  },
+  {
+    key:"tank", name:"Water Tank",
+    mLabel:"Fill rate (gal/min)", mMin:1, mMax:10, mStep:1, mDefault:3,
+    bLabel:"Starting water (gal)", bMin:0, bMax:50, bStep:5, bDefault:10,
+    xLabel:"Minutes", xMax:20, yLabel:"Water in tank",
+    mFmt:m=>`${m} gal/min`, bFmt:b=>`${b} gal`,
+    sentence:(m,b)=> b===0
+      ? `The tank starts empty and fills at ${m} gallons per minute.`
+      : `The tank starts with ${b} gallons, then fills at ${m} gallons per minute.`
+  }
+];
+
+/* ---------- state: the single source of truth ---------- */
+const S = { scnIdx: 0, m: 0, b: 0 };
+const scn = () => SCENARIOS[S.scnIdx];
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.body).getPropertyValue(n).trim();
+
+// Every number on screen — the sentence, the sliders, the graph, the table —
+// is computed from S.m / S.b through this one function. Nothing is ever
+// hardcoded to "match" the drawing separately.
+function yOf(x){
+  const c = scn();
+  const rate = c.mIsCents ? S.m / 100 : S.m;
+  return rate * x + S.b;
+}
+
+function fmtY(y){
+  const c = scn();
+  if(c.key === "tank") return Number.isInteger(y) ? `${y} gal` : `${y.toFixed(1)} gal`;
+  return Number.isInteger(y) ? `$${y}` : `$${y.toFixed(2)}`;
+}
+
+function niceXTicks(xMax){
+  const pts = [0, Math.round(xMax/3), Math.round(xMax*2/3), xMax];
+  return [...new Set(pts)];
+}
+
+function fit(cv){
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth || 600, h = cv.clientHeight || 400;
+  if(cv.width !== Math.round(w*dpr) || cv.height !== Math.round(h*dpr)){
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+  }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  return {ctx,w,h};
+}
+
+/* ---------- draw ---------- */
+function draw(){
+  const c = scn();
+  const {ctx,w,h} = fit($("cv"));
+  const padL = 54, padR = 16, padT = 16, padB = 40;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+
+  const xMax = c.xMax;
+  const yMax = Math.max(yOf(xMax), yOf(0)) * 1.15 || 1;
+
+  const px = x => padL + (x/xMax) * plotW;
+  const py = y => padT + plotH - (y/yMax) * plotH;
+
+  ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+  for(let i=0;i<=10;i++){
+    const gx = padL + i*plotW/10, gy = padT + i*plotH/10;
+    ctx.beginPath(); ctx.moveTo(gx,padT); ctx.lineTo(gx,padT+plotH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(padL,gy); ctx.lineTo(padL+plotW,gy); ctx.stroke();
+  }
+
+  ctx.strokeStyle = css("--ink"); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,padT+plotH); ctx.lineTo(padL+plotW,padT+plotH); ctx.stroke();
+
+  // numeric tick labels so students can read off where any point actually lands
+  ctx.fillStyle = css("--ink-faint");
+  ctx.font = "11px -apple-system,sans-serif";
+  ctx.textAlign = "center";
+  for(let i=0;i<=10;i+=2){
+    const tx = (i/10)*xMax;
+    ctx.fillText(Number.isInteger(tx) ? tx : tx.toFixed(1), px(tx), padT+plotH+16);
+  }
+  ctx.textAlign = "right";
+  for(let i=0;i<=10;i+=2){
+    const ty = (i/10)*yMax;
+    ctx.fillText(Number.isInteger(ty) ? ty : ty.toFixed(1), padL-8, py(ty)+4);
+  }
+
+  ctx.fillStyle = css("--ink-soft");
+  ctx.font = "13px -apple-system,sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(c.xLabel, padL + plotW/2, h - 8);
+  ctx.save();
+  ctx.translate(14, padT + plotH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText(c.yLabel, 0, 0);
+  ctx.restore();
+
+  // the line, drawn straight from yOf() — same function backing every readout
+  ctx.strokeStyle = css("--accent"); ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(px(0), py(yOf(0)));
+  ctx.lineTo(px(xMax), py(yOf(xMax)));
+  ctx.stroke();
+
+  // y-intercept marker — purple, with a dashed lead-in and its coordinate,
+  // since this is the point every scenario's "proportional or not" hinges on
+  const b0y = yOf(0);
+  ctx.setLineDash([4,4]);
+  ctx.strokeStyle = css("--accent-4"); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(padL, py(b0y)); ctx.lineTo(px(0), py(b0y)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = css("--accent-4");
+  ctx.beginPath(); ctx.arc(px(0), py(b0y), 7, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = css("--bg"); ctx.lineWidth = 2; ctx.stroke();
+  ctx.font = "12px -apple-system,sans-serif";
+  ctx.textAlign = "left";
+  // label sits below-right of the point: every scenario's rate is positive,
+  // so the line always rises up-and-right from here, leaving this corner clear
+  ctx.fillText(`y-intercept: (0, ${b0y % 1 === 0 ? b0y : b0y.toFixed(2)})`, px(0)+10, py(b0y)+18);
+
+  // slope triangle, never a color alone — labeled with the actual run/rise
+  const ticks = niceXTicks(xMax);
+  const x1 = ticks[1], x2 = ticks[2];
+  if(x2 > x1){
+    const y1 = yOf(x1), y2 = yOf(x2);
+    ctx.setLineDash([5,4]);
+    ctx.strokeStyle = css("--accent-3"); ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px(x1), py(y1)); ctx.lineTo(px(x2), py(y1));
+    ctx.lineTo(px(x2), py(y2));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = css("--accent-3");
+    ctx.textAlign = "center";
+    ctx.fillText(`+${x2-x1} ${c.xLabel.toLowerCase()}`, (px(x1)+px(x2))/2, py(y1)+16);
+    ctx.save();
+    ctx.translate(px(x2)+14, (py(y1)+py(y2))/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.textAlign = "center";
+    ctx.fillText(`+${(y2-y1).toFixed(2).replace(/\.00$/,"")} ${c.yLabel.toLowerCase()}`, 0, 0);
+    ctx.restore();
+  }
+}
+
+/* ---------- render ---------- */
+function render(){
+  const c = scn();
+
+  $("sentence").textContent = c.sentence(S.m, S.b);
+  $("vM").textContent = c.mFmt(S.m);
+  $("vB").textContent = c.bFmt(S.b);
+
+  draw();
+
+  const rateStr = c.mIsCents ? `$${(S.m/100).toFixed(2)}` : (c.key === "tank" ? `${S.m}` : `$${S.m}`);
+  const bStr = c.key === "tank" ? `${S.b}` : `$${S.b}`;
+  const eq = `${c.yLabel} = ${rateStr} &times; ${c.xLabel} + ${bStr}`;
+  const rawRate = c.mIsCents ? S.m/100 : S.m;
+  const abstractEq = S.b === 0 ? `y = ${rawRate}x` : `y = ${rawRate}x + ${S.b}`;
+
+  const isProp = S.b === 0;
+  const propClass = isProp ? "yes" : "no";
+  const propText = isProp
+    ? `Since the starting amount is 0, this IS proportional — ${c.yLabel.toLowerCase()} is always a constant multiple of ${c.xLabel.toLowerCase()}, and the line passes through (0, 0).`
+    : `Since the starting amount is ${c.key==="tank" ? S.b+" gal" : "$"+S.b} (not zero), this is NOT proportional — the line does not pass through (0, 0).`;
+
+  const ticks = niceXTicks(c.xMax);
+  const rows = ticks.map(x => `<tr class="${x===0 ? "yint-row" : ""}"><td>${x}</td><td>${fmtY(yOf(x))}</td></tr>`).join("");
+
+  $("out").innerHTML = `
+    <div class="eq"><b>${eq}</b></div>
+    <div class="eq-abstract">same relationship in slope-intercept form: <b>${abstractEq}</b></div>
+    <div class="propcheck ${propClass}">${propText}</div>
+    <table>
+      <thead><tr><th>${c.xLabel}</th><th>${c.yLabel}</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/* ---------- scenario switching ---------- */
+function buildScenarioButtons(){
+  const wrap = $("scenarios");
+  wrap.innerHTML = SCENARIOS.map((c,i) =>
+    `<button data-i="${i}" aria-pressed="${i===S.scnIdx}">${c.name}</button>`).join("");
+  wrap.querySelectorAll("button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      S.scnIdx = +btn.dataset.i;
+      const c = scn();
+      S.m = c.mDefault; S.b = c.bDefault;
+      wrap.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed", b===btn));
+      setupSliders();
+      render();
+    });
+  });
+}
+
+function setupSliders(){
+  const c = scn();
+  const sM = $("sM"), sB = $("sB");
+  $("nmM").textContent = c.mLabel;
+  $("nmB").textContent = c.bLabel;
+  sM.min = c.mMin; sM.max = c.mMax; sM.step = c.mStep; sM.value = S.m;
+  sB.min = c.bMin; sB.max = c.bMax; sB.step = c.bStep; sB.value = S.b;
+}
+
+/* ---------- wire up ---------- */
+S.m = SCENARIOS[0].mDefault; S.b = SCENARIOS[0].bDefault;
+buildScenarioButtons();
+setupSliders();
+$("sM").addEventListener("input", e => { S.m = +e.target.value; render(); });
+$("sB").addEventListener("input", e => { S.b = +e.target.value; render(); });
+window.addEventListener("resize", draw);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+render();
+</script>
+</body>
+</html>
