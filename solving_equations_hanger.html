@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solving Equations: Keep It Balanced</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f1f5f9; --line:#cbd5e1;
+    --ink:#0f172a; --ink-soft:#475569; --ink-faint:#64748b;
+    --grid:rgba(100,116,139,.25);
+    --accent:#0369a1; --accent-2:#047857; --accent-3:#be123c;
+    --accent-fill:rgba(3,105,161,.15);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f172a; --panel:#1e293b; --line:#334155;
+      --ink:#f1f5f9; --ink-soft:#cbd5e1; --ink-faint:#94a3b8;
+      --grid:rgba(148,163,184,.22);
+      --accent:#38bdf8; --accent-2:#34d399; --accent-3:#fb7185;
+      --accent-fill:rgba(56,189,248,.18);
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); padding:18px; min-height:100vh;
+  }
+  .wrap{max-width:1200px;margin:0 auto}
+  h1{font-size:1.25rem;font-weight:650}
+  .lede{font-size:.9rem;color:var(--ink-soft);margin-top:4px;max-width:70ch;line-height:1.45}
+
+  .main-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;align-items:start}
+  @media (max-width:880px){ .main-grid{grid-template-columns:1fr} }
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0}
+  .panel .lbl{font-size:.8rem;font-weight:650;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px}
+  .toggle-row{display:flex;flex-wrap:wrap;gap:8px}
+  .toggle-row button{
+    font:inherit;font-size:.9rem;font-weight:650;min-height:44px;padding:0 16px;
+    background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;cursor:pointer;
+  }
+  .toggle-row button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+  .btn{font:inherit;font-size:.9rem;font-weight:650;min-height:44px;padding:0 16px;
+    background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+  .btn:hover{border-color:var(--accent)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .op-btn{min-width:44px;font-size:1.1rem;font-weight:700}
+  .op-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+  .term-input{height:44px;width:90px;padding:0 10px;text-align:center;
+    font:inherit;font-size:1rem;font-weight:700;color:var(--ink);
+    background:var(--bg);border:1px solid var(--line);border-radius:8px}
+  .term-input:focus-visible, .btn:focus-visible, .toggle-row button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+  .workspace{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+  .step-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:8px 12px;background:var(--bg);border:1px solid var(--line);border-radius:8px}
+  .step-row.solved{border-color:var(--accent-2);background:rgba(4,120,87,.08)}
+  .step-eq{font-size:1.02rem;font-weight:700;font-variant-numeric:tabular-nums}
+  .step-tag{font-size:.78rem;color:var(--ink-faint);font-weight:650;white-space:nowrap}
+  .action-bridge{display:flex;align-items:center;gap:6px;padding:0 4px 0 16px;font-size:.8rem;color:var(--accent);font-weight:650}
+  .action-bridge .pill{background:var(--accent-fill);color:var(--accent);padding:1px 8px;border-radius:999px;font-weight:700}
+
+  .alert{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:.85rem;line-height:1.4;
+    background:rgba(217,119,6,.1);border:1px solid #d97706;color:var(--ink)}
+  .hint{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:.85rem;line-height:1.4;
+    background:var(--accent-fill);border:1px solid var(--accent);color:var(--ink)}
+
+  .words-body{font-size:1.02rem;font-weight:600;color:var(--ink);line-height:1.5}
+
+  svg.hanger{width:100%;max-width:640px;aspect-ratio:10/7;display:block;margin:0 auto;
+    background:var(--bg);border:1px solid var(--line);border-radius:10px}
+
+  .readout{margin-top:12px;font-size:.9rem;color:var(--ink-soft);line-height:1.6;min-height:1px}
+  .readout .solved{color:var(--accent-2);font-weight:700;font-size:1rem}
+  footer{margin-top:14px;font-size:.8rem;color:var(--ink-faint);line-height:1.5;max-width:80ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Solving Equations: Keep It Balanced</h1>
+  <p class="lede">Pick a problem, then apply an operation to both sides &mdash; use the quick moves, or build your own. Predict first: does this move get you closer to "x = ...", or does it just make the equation messier?</p>
+
+  <div class="main-grid">
+    <div class="col-left">
+      <div class="panel">
+        <div class="lbl">Problem</div>
+        <div class="toggle-row" id="probRow" role="group" aria-label="Choose a problem"></div>
+      </div>
+
+      <div class="panel">
+        <div class="lbl">Steps so far</div>
+        <div class="workspace" id="workPane" aria-live="polite"></div>
+        <div class="alert" id="warnBanner" style="display:none"></div>
+        <div class="hint" id="hintBanner" style="display:none"></div>
+      </div>
+
+      <div class="panel">
+        <div class="lbl">Apply an operation to both sides</div>
+        <div class="btn-row" id="opRow" role="group" aria-label="Choose an operation">
+          <button class="btn op-btn" data-op="+" aria-pressed="true">+</button>
+          <button class="btn op-btn" data-op="-" aria-pressed="false">&minus;</button>
+          <button class="btn op-btn" data-op="&times;" aria-pressed="false">&times;</button>
+          <button class="btn op-btn" data-op="&divide;" aria-pressed="false">&divide;</button>
+          <input type="text" class="term-input" id="termInput" value="2" aria-label="Term to apply, e.g. 5 or 2x">
+          <button class="btn" id="btnApply" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Apply</button>
+        </div>
+        <div class="lbl" style="margin-top:14px">Quick moves for this problem</div>
+        <div class="btn-row" id="chipRow"></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn" id="btnDistribute">Distribute</button>
+          <button class="btn" id="btnUndo">Undo</button>
+          <button class="btn" id="btnReset">Reset problem</button>
+        </div>
+      </div>
+
+      <div class="readout" id="out" aria-live="polite"></div>
+    </div>
+
+    <div class="col-right">
+      <div class="panel">
+        <div class="lbl">In Plain Words</div>
+        <div class="words-body" id="wordsBody"></div>
+      </div>
+
+      <svg class="hanger" id="hangerSvg" viewBox="0 0 400 280"></svg>
+    </div>
+  </div>
+
+  <footer>Applying the same operation to both sides keeps the hanger balanced the whole way &mdash; that's the one rule every move here follows, whether it takes you closer to x = a number or just makes the equation messier.</footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ---------- fixed problems: each side is x-count + constant, with an optional (mult)(x + c) group on the left ----------
+   Stored here as plain whole numbers for readability; loadProblem() converts every field to an
+   exact fraction {n,d} so nothing downstream ever rounds. */
+const PRESETS = [
+  { title: "3(x + 2) = 18",        chips: ["÷ 3", "- 2"],
+    left: {hasGroup:true, groupMult:3, insideX:1, insideC:2, outsideX:0, outsideC:0}, right: {x:0, c:18} },
+  { title: "4x + 7 = 2x + 19",     chips: ["- 2x", "- 7", "÷ 2"],
+    left: {hasGroup:false, groupMult:1, insideX:0, insideC:0, outsideX:4, outsideC:7}, right: {x:2, c:19} },
+  { title: "2(x - 4) + 5 = 15",    chips: ["- 5", "÷ 2", "+ 4"],
+    left: {hasGroup:true, groupMult:2, insideX:1, insideC:-4, outsideX:0, outsideC:5}, right: {x:0, c:15} },
+  { title: "5x - 3 = 12",          chips: ["+ 3", "÷ 5"],
+    left: {hasGroup:false, groupMult:1, insideX:0, insideC:0, outsideX:5, outsideC:-3}, right: {x:0, c:12} },
+  { title: "6 - 2x = 14",          chips: ["- 6", "÷ -2"],
+    left: {hasGroup:false, groupMult:1, insideX:0, insideC:0, outsideX:-2, outsideC:6}, right: {x:0, c:14} }
+];
+
+const S = { probIdx: 0, history: [], warning: null, selectedOp: "+" };
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ---------- exact fraction arithmetic — every number in the equation is one of these, never a float.
+   That's what makes ÷ honest: dividing 16 by 3 gives {n:16,d:3} ("16/3"), not a rounded 5.33. ---------- */
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+function frac(n,d=1){ if(d<0){ n=-n; d=-d; } const g=gcd(n,d)||1; return { n:n/g, d:d/g }; }
+const F = n => frac(n,1);
+const fAdd = (a,b) => frac(a.n*b.d + b.n*a.d, a.d*b.d);
+const fMul = (a,b) => frac(a.n*b.n, a.d*b.d);
+const fDiv = (a,b) => frac(a.n*b.d, a.d*b.n);
+const fNeg = a => frac(-a.n, a.d);
+const fIsZero = a => a.n===0;
+const fIsOne = a => a.n===a.d;
+const fEq = (a,b) => a.n*b.d === b.n*a.d;
+function fAbsStr(a){ const n=Math.abs(a.n); return a.d===1 ? `${n}` : `${n}/${a.d}`; }
+const fRawStr = a => a.n<0 ? `-${fAbsStr(a)}` : fAbsStr(a);
+const fSigned = (a, forcePlus) => a.n>=0 ? `${forcePlus?"+ ":""}${fAbsStr(a)}` : `- ${fAbsStr(a)}`;
+const sumFracs = arr => arr.reduce((a,f)=>fAdd(a,f), F(0));
+// outsideX / outsideC are ARRAYS of terms, not a single running total. +, -, ×, ÷ still collapse
+// them back to one combined term (that's a deliberate "apply to both sides" move) — but Distribute
+// just unpacks the parentheses in place, so the freshly-freed terms sit next to whatever was
+// already outside instead of silently merging with it.
+function fracSide(s){ return { hasGroup:s.hasGroup, groupMult:F(s.groupMult), insideX:F(s.insideX), insideC:F(s.insideC), outsideX:s.outsideX===0?[]:[F(s.outsideX)], outsideC:s.outsideC===0?[]:[F(s.outsideC)] }; }
+function fracRight(r){ return { x:F(r.x), c:F(r.c) }; }
+
+/* ---------- formatting: every string here is built from the live side object, never hardcoded ---------- */
+function formatSide(side){
+  const parts = [];
+  if(side.hasGroup){
+    const inside = [];
+    if(fEq(side.insideX,F(1))) inside.push("x");
+    else if(fEq(side.insideX,F(-1))) inside.push("-x");
+    else if(!fIsZero(side.insideX)) inside.push(`${fRawStr(side.insideX)}x`);
+    if(!fIsZero(side.insideC) || inside.length===0) inside.push(inside.length ? fSigned(side.insideC,true) : fRawStr(side.insideC));
+    parts.push(`${fIsOne(side.groupMult)?"":fRawStr(side.groupMult)}(${inside.join(" ")})`);
+  }
+  side.outsideX.forEach(f=>{
+    if(fIsZero(f)) return;
+    const term = fEq(f,F(1))||fEq(f,F(-1)) ? "x" : `${fAbsStr(f)}x`;
+    parts.push(parts.length ? (f.n>0?`+ ${term}`:`- ${term}`) : (f.n<0?`-${term}`:term));
+  });
+  side.outsideC.forEach(f=>{
+    if(fIsZero(f)) return;
+    parts.push(parts.length ? fSigned(f,true) : fRawStr(f));
+  });
+  if(parts.length===0) parts.push("0");
+  return parts.join(" ");
+}
+function formatRight(r){
+  const parts = [];
+  if(!fIsZero(r.x)){
+    const term = fEq(r.x,F(1)) ? "x" : fEq(r.x,F(-1)) ? "-x" : `${fRawStr(r.x)}x`;
+    parts.push(term);
+  }
+  if(!fIsZero(r.c) || parts.length===0) parts.push(parts.length ? fSigned(r.c,true) : fRawStr(r.c));
+  return parts.join(" ");
+}
+function formatEq(left,right){ return `${formatSide(left)} = ${formatRight(right)}`; }
+
+function numWord(n){
+  const w=["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+  const a=Math.abs(n), word = w[a]!==undefined ? w[a] : String(a);
+  return n<0 ? `negative ${word}` : word;
+}
+const ORDINALS = {2:"half",3:"third",4:"fourth",5:"fifth",6:"sixth",7:"seventh",8:"eighth",9:"ninth",10:"tenth"};
+function fracWord(a){
+  if(a.d===1) return numWord(a.n);
+  const absN = Math.abs(a.n), d = a.d;
+  const ord = ORDINALS[d] || `${d}th`;
+  const plural = absN===1 ? ord : (ord==="half" ? "halves" : `${ord}s`);
+  const word = `${numWord(absN)} ${plural}`;
+  return a.n<0 ? `negative ${word}` : word;
+}
+function sideWords(side){
+  const seg=[];
+  if(side.hasGroup){
+    let inside = fEq(side.insideX,F(1))?"x":fEq(side.insideX,F(-1))?"negative x":!fIsZero(side.insideX)?`${fracWord(side.insideX)} x's`:"";
+    if(!fIsZero(side.insideC)) inside += ` ${side.insideC.n>0?"plus":"minus"} ${fAbsStr(side.insideC)==="1"?"one":fracWord(frac(Math.abs(side.insideC.n),side.insideC.d))}`;
+    seg.push(`${fracWord(side.groupMult)} ${fIsOne(side.groupMult)?"group":"groups"} of (${inside})`);
+  }
+  side.outsideX.forEach(f=>{
+    if(fIsZero(f)) return;
+    const t = `${fracWord(frac(Math.abs(f.n),f.d))} ${fEq(f,F(1))||fEq(f,F(-1))?"x":"x's"}`;
+    seg.push(seg.length ? `${f.n<0?"minus":"plus"} ${t}` : (f.n<0?`negative ${t}`:t));
+  });
+  side.outsideC.forEach(f=>{
+    if(fIsZero(f)) return;
+    const c = fracWord(frac(Math.abs(f.n),f.d));
+    seg.push(seg.length ? `${f.n<0?"minus":"plus"} ${c}` : (f.n<0?`negative ${c}`:c));
+  });
+  if(seg.length===0) seg.push("zero");
+  return seg.join(" ");
+}
+function rightWords(r){
+  const seg=[];
+  if(!fIsZero(r.x)){ const t=`${fracWord(frac(Math.abs(r.x.n),r.x.d))} ${fEq(r.x,F(1))||fEq(r.x,F(-1))?"x":"x's"}`; seg.push(r.x.n<0?`negative ${t}`:t); }
+  if(!fIsZero(r.c) || seg.length===0){ const c=fracWord(frac(Math.abs(r.c.n),r.c.d)); seg.push(seg.length?`${r.c.n<0?"minus":"plus"} ${c}`:(r.c.n<0?`negative ${c}`:c)); }
+  return seg.join(" ");
+}
+function equationWords(left,right){
+  const full = `${sideWords(left)} is equal to ${rightWords(right)}.`;
+  return full.charAt(0).toUpperCase()+full.slice(1);
+}
+
+/* ---------- the only place the equation actually changes — shared by both the quick-move chips and the free builder ---------- */
+function applyOp(op, rawTerm){
+  const term = (rawTerm||"").trim().toLowerCase();
+  const isVar = term.includes("x");
+  let valNum;
+  if(isVar){
+    const coeff = term.replace("x","").trim();
+    valNum = coeff===""||coeff==="+" ? 1 : coeff==="-" ? -1 : Number(coeff);
+  } else {
+    valNum = Number(term);
+  }
+  if(isNaN(valNum) || !Number.isInteger(valNum)){
+    S.warning = `"${rawTerm}" isn't a whole-number term this hanger understands. Try a number (5, -3) or an x-term (2x, -x) — fractions only show up as the *result* of dividing.`;
+    render(); return;
+  }
+  const val = F(valNum);
+
+  const cur = S.history[S.history.length-1];
+  const L = clone(cur.left), R = clone(cur.right);
+  let warning = null;
+
+  if(op==="+" || op==="-"){
+    const v = op==="-" ? fNeg(val) : val;
+    if(isVar){
+      const after = fAdd(sumFracs(L.outsideX), v);
+      L.outsideX = fIsZero(after) ? [] : [after];
+      R.x = fAdd(R.x,v);
+    } else {
+      if(L.hasGroup){
+        const before = sumFracs(L.outsideC), after = fAdd(before,v);
+        if(fIsZero(before)) warning = `${fSigned(v,true)} landed outside the grouped package — both sides stay balanced, but the left side now has an ungrouped term too.`;
+        else if(fIsZero(after)) warning = `${fSigned(v,true)} cancels out the ${fSigned(before,true)} that was already outside the package — one less term to track.`;
+        else warning = `${fSigned(v,true)} combines with the ${fSigned(before,true)} already outside the package to make ${fSigned(after,true)}.`;
+      }
+      const after = fAdd(sumFracs(L.outsideC), v);
+      L.outsideC = fIsZero(after) ? [] : [after];
+      R.c = fAdd(R.c,v);
+    }
+  } else if(op==="×" || op==="*"){
+    if(valNum===0){ S.warning = "Multiplying both sides by 0 empties the hanger — you'd lose all the information about x."; render(); return; }
+    if(L.hasGroup) L.groupMult = fMul(L.groupMult,val);
+    L.outsideX = L.outsideX.map(f=>fMul(f,val)); L.outsideC = L.outsideC.map(f=>fMul(f,val));
+    R.x = fMul(R.x,val); R.c = fMul(R.c,val);
+  } else if(op==="÷" || op==="/"){
+    if(valNum===0){ S.warning = "Division by zero is undefined."; render(); return; }
+    if(L.hasGroup){
+      if(!fIsZero(sumFracs(L.outsideC)) || !fIsZero(sumFracs(L.outsideX))) warning = `Dividing by ${valNum} splits the outside terms as well as the group.`;
+      // Every term on the left gets divided — including the ones outside the parentheses.
+      // The multiplier can land on exactly 1, but the group stays wrapped until Distribute is
+      // clicked on purpose: dividing doesn't get to silently unpack the parentheses for you.
+      L.groupMult = fDiv(L.groupMult, val);
+      L.outsideX = L.outsideX.map(f=>fDiv(f,val));
+      L.outsideC = L.outsideC.map(f=>fDiv(f,val));
+    } else {
+      L.outsideX = L.outsideX.map(f=>fDiv(f,val));
+      L.outsideC = L.outsideC.map(f=>fDiv(f,val));
+    }
+    R.x = fDiv(R.x, val); R.c = fDiv(R.c, val);
+  }
+
+  S.history.push({ left:L, right:R, action:`${op} ${rawTerm.trim()}` });
+  S.warning = warning;
+  render();
+}
+function distribute(){
+  const cur = S.history[S.history.length-1];
+  if(!cur.left.hasGroup){ S.warning = "There's no grouped package left to distribute."; render(); return; }
+  const L = clone(cur.left), R = clone(cur.right);
+  const m = L.groupMult;
+  const newX = fMul(m,L.insideX), newC = fMul(m,L.insideC);
+  // The unpacked terms take the spot the group occupied — first — rather than merging into
+  // whatever was already outside. "(x+2) - 2/3" distributes to "x + 2 - 2/3", not "x + 4/3".
+  if(!fIsZero(newX)) L.outsideX = [newX, ...L.outsideX];
+  if(!fIsZero(newC)) L.outsideC = [newC, ...L.outsideC];
+  L.hasGroup=false;
+  S.history.push({ left:L, right:R, action:`distribute ${fRawStr(m)}` });
+  S.warning = null;
+  render();
+}
+
+/* Solved value is read from the live state, never a stored answer key. Returns a fraction string. */
+function solvedValue(cur){
+  const L=cur.left, R=cur.right;
+  if(L.hasGroup) return null;
+  const sumX = sumFracs(L.outsideX), sumC = sumFracs(L.outsideC);
+  if(fEq(sumX,F(1)) && fIsZero(sumC) && fIsZero(R.x)) return fRawStr(R.c);
+  if(fEq(R.x,F(1)) && fIsZero(R.c) && fIsZero(sumX)) return fRawStr(sumC);
+  return null;
+}
+
+/* Counts the distinct fraction terms actually sitting in the current equation (group multiplier,
+   each outside term, both sides of the right-hand side) — read live, never assumed. */
+function countFractions(cur){
+  const vals = [];
+  if(cur.left.hasGroup) vals.push(cur.left.groupMult);
+  vals.push(...cur.left.outsideX, ...cur.left.outsideC, cur.right.x, cur.right.c);
+  return vals.filter(f => !fIsZero(f) && f.d!==1).length;
+}
+
+/* ---------- hanger diagram: drawn from the same left/right objects as everything else ----------
+   A dot or block can only stand for a whole unit — there's no honest way to draw 2/3 of one. So a
+   fractional x-coefficient or constant gets a labeled badge instead of dots, same as the >20 case. */
+function drawHanger(left,right){
+  const svg = $("hangerSvg");
+  let html = `
+    <line x1="200" y1="6" x2="200" y2="32" stroke="var(--ink-soft)" stroke-width="3"/>
+    <circle cx="200" cy="32" r="5" fill="var(--ink)"/>
+    <line x1="60" y1="32" x2="340" y2="32" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="95" y1="32" x2="95" y2="64" stroke="var(--ink-faint)" stroke-width="1.5"/>
+    <line x1="305" y1="32" x2="305" y2="64" stroke="var(--ink-faint)" stroke-width="1.5"/>
+  `;
+  function tray(cx, side, isLeft){
+    let g = `<g transform="translate(${cx},64)">`;
+    let y = 0;
+    if(side.hasGroup){
+      const insideXStr = fEq(side.insideX,F(1)) ? "x" : `${fRawStr(side.insideX)}x`;
+      const groupLabel = fIsOne(side.groupMult) ? `(${insideXStr} ${fSigned(side.insideC,true)})` : `${fRawStr(side.groupMult)} &times; (${insideXStr} ${fSigned(side.insideC,true)})`;
+      g += `<rect x="-46" y="${y}" width="92" height="34" rx="6" fill="var(--accent-fill)" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3,2"/>
+            <text x="0" y="${y+21}" font-size="11" font-weight="700" fill="var(--ink)" text-anchor="middle">${groupLabel}</text>`;
+      y += 40;
+    }
+    const xCount = isLeft ? sumFracs(side.outsideX) : side.x;
+    if(!fIsZero(xCount)){
+      const neg = xCount.n<0, col = neg?"var(--accent-3)":"var(--accent)", fill = neg?"rgba(190,18,60,.15)":"var(--accent-fill)";
+      if(xCount.d===1){
+        const whole = Math.abs(xCount.n);
+        const n = Math.min(whole, 6);
+        for(let i=0;i<n;i++){
+          const bx=-40+(i%3)*28, by=y+Math.floor(i/3)*24;
+          g += `<rect x="${bx}" y="${by}" width="24" height="20" rx="4" fill="${fill}" stroke="${col}" stroke-width="1.5"/>
+                <text x="${bx+12}" y="${by+14}" font-size="10" font-weight="700" fill="${col}" text-anchor="middle">${neg?"-x":"x"}</text>`;
+        }
+        y += Math.ceil(n/3)*24 + 4;
+        if(whole>6){ g += `<text x="0" y="${y+8}" font-size="9" font-weight="700" fill="${col}" text-anchor="middle">(${fRawStr(xCount)}x total)</text>`; y+=14; }
+      } else {
+        // Fractional x-coefficient — a block can't show 2/3 of an x, so it gets a badge instead.
+        g += `<rect x="-42" y="${y+2}" width="84" height="24" rx="6" fill="${fill}" stroke="${col}" stroke-width="1.5"/>
+              <text x="0" y="${y+17}" font-size="11" font-weight="700" fill="${col}" text-anchor="middle">${xCount.n>0?"+":""}${fRawStr(xCount)}x</text>`;
+        y += 32;
+      }
+    }
+    // Constant units as individual dots, 4 to a row, up to 20 — past that, or when the count is
+    // fractional, a single badge stands in.
+    const cCount = isLeft ? sumFracs(side.outsideC) : side.c;
+    if(!fIsZero(cCount)){
+      const neg = cCount.n<0, col = neg?"var(--accent-3)":"var(--accent-2)";
+      if(cCount.d===1 && Math.abs(cCount.n)<=20){
+        const total = Math.abs(cCount.n);
+        for(let i=0;i<total;i++){
+          const cx2=-30+(i%4)*20, cy2=y+Math.floor(i/4)*18+9;
+          g += `<circle cx="${cx2}" cy="${cy2}" r="7" fill="${col}"/><text x="${cx2}" y="${cy2+3.5}" font-size="7.5" font-weight="700" fill="#fff" text-anchor="middle">${neg?"-1":"+1"}</text>`;
+        }
+        y += Math.ceil(total/4)*18 + 6;
+      } else {
+        g += `<rect x="-42" y="${y+2}" width="84" height="24" rx="6" fill="${neg?"rgba(190,18,60,.12)":"rgba(4,120,87,.12)"}" stroke="${col}" stroke-width="1.5"/>
+              <text x="0" y="${y+17}" font-size="11" font-weight="700" fill="${col}" text-anchor="middle">${cCount.n>0?"+":""}${fRawStr(cCount)} units</text>`;
+        y += 32;
+      }
+    }
+    g += `<line x1="-54" y1="${y+6}" x2="54" y2="${y+6}" stroke="var(--ink-soft)" stroke-width="3" stroke-linecap="round"/></g>`;
+    return g;
+  }
+  html += tray(95, left, true) + tray(305, right, false);
+  svg.innerHTML = html;
+}
+
+/* ---------- render everything from S.history's last entry — one source of truth ---------- */
+function render(){
+  const p = PRESETS[S.probIdx];
+  const cur = S.history[S.history.length-1];
+  const solved = solvedValue(cur);
+
+  const pane = $("workPane"); pane.innerHTML = "";
+  S.history.forEach((h,i)=>{
+    // The action that produced this line sits on its own row, between the two equations it
+    // connects — that's the "in-between step" a student follows with their finger.
+    if(h.action){
+      const bridge = document.createElement("div");
+      bridge.className = "action-bridge";
+      bridge.innerHTML = `↳ <span class="pill">${h.action}</span> applied to both sides`;
+      pane.appendChild(bridge);
+    }
+    const row = document.createElement("div");
+    row.className = `step-row ${i===S.history.length-1 && solved!==null ? "solved":""}`;
+    row.innerHTML = `<span class="step-eq">${formatEq(h.left,h.right)}</span>
+      <span class="step-tag">${i===0?"Start":`Step ${i}`}</span>`;
+    pane.appendChild(row);
+  });
+  pane.scrollTop = pane.scrollHeight;
+
+  const warn = $("warnBanner");
+  if(S.warning){ warn.textContent = S.warning; warn.style.display = "block"; } else warn.style.display = "none";
+
+  // Standing tip, not tied to the last move — stays up as long as the current line is carrying
+  // two or more fractions, since that's when "there's a cleaner order" is actually worth saying.
+  const hint = $("hintBanner");
+  if(countFractions(cur) >= 2){
+    hint.textContent = "This equation is juggling more than one fraction right now. It'll still get you to the right answer, but distributing or combining like terms before you divide usually keeps the numbers whole longer.";
+    hint.style.display = "block";
+  } else hint.style.display = "none";
+
+  $("btnUndo").disabled = S.history.length<=1;
+  $("btnDistribute").disabled = !cur.left.hasGroup;
+
+  const chips = $("chipRow"); chips.innerHTML = "";
+  p.chips.forEach(c=>{
+    const [op, term] = c.split(" ");
+    const b = document.createElement("button");
+    b.className = "btn"; b.textContent = c;
+    b.addEventListener("click", ()=> applyOp(op, term));
+    chips.appendChild(b);
+  });
+
+  drawHanger(cur.left, cur.right);
+  $("wordsBody").textContent = equationWords(cur.left, cur.right);
+
+  $("out").innerHTML = solved!==null ? `<p class="solved">Solved: x = ${solved}</p>` : "";
+}
+
+function loadProblem(idx){
+  S.probIdx = idx;
+  S.history = [{ left: fracSide(PRESETS[idx].left), right: fracRight(PRESETS[idx].right), action: null }];
+  S.warning = null;
+  render();
+}
+
+/* ---------- wire up ---------- */
+const probRow = $("probRow");
+PRESETS.forEach((p,i)=>{
+  const b = document.createElement("button");
+  b.textContent = `${i+1}) ${p.title}`;
+  b.setAttribute("aria-pressed", i===0);
+  b.addEventListener("click", ()=>{
+    probRow.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", x===b));
+    loadProblem(i);
+  });
+  probRow.appendChild(b);
+});
+document.querySelectorAll(".op-btn").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll(".op-btn").forEach(x=>x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed","true");
+    S.selectedOp = b.dataset.op;
+  });
+});
+$("btnApply").addEventListener("click", ()=> applyOp(S.selectedOp, $("termInput").value));
+$("btnDistribute").addEventListener("click", distribute);
+$("btnUndo").addEventListener("click", ()=>{ if(S.history.length>1){ S.history.pop(); S.warning=null; render(); } });
+$("btnReset").addEventListener("click", ()=> loadProblem(S.probIdx));
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+loadProblem(0);
+</script>
+</body>
+</html>
