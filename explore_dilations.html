@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dilation Explorer — Iowa Standard 8.G.A.3</title>
+  <title>Dilation Explorer</title>
   <style>
     :root {
       --bg: #f8fafc;
@@ -34,6 +34,29 @@
       padding: 1.5rem 1rem;
     }
 
+ .back {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  margin-bottom: 14px;
+}
+.back:hover { text-decoration: underline; }
+    
+    .app-container {
+      width: 100%;
+      max-width: 1040px;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
     .widget-container {
       width: 100%;
       max-width: 780px;
@@ -222,6 +245,8 @@
 </head>
 <body>
 
+ <a class="back" href="index.html">&larr; All tools</a>
+  
   <div class="widget-container">
     <div class="header-bar">
       <h1>Dilation Explorer</h1>
