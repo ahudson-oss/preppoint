@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dilation Explorer — Iowa Standard 8.G.A.3</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --border: #cbd5e1;
+      --preimage-color: #0284c7;
+      --image-color: #6366f1;
+      --center-color: #eab308;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --radius: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem 1rem;
+    }
+
+    .widget-container {
+      width: 100%;
+      max-width: 780px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .header-bar h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .standard-tag {
+      background: #f3e8ff;
+      color: #7e22ce;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+    }
+
+    /* Button Groupings */
+    .button-group {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      flex: 1;
+      min-width: 110px;
+      padding: 0.65rem 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: var(--text);
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .btn:hover {
+      background: #e2e8f0;
+    }
+
+    .btn.active {
+      background: #eff6ff;
+      color: var(--primary);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .btn-center {
+      min-width: 80px;
+      font-size: 0.85rem;
+    }
+
+    .btn-reset {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+      font-size: 0.82rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.15s ease;
+    }
+
+    .btn-reset:hover {
+      background: #fecaca;
+      border-color: #f87171;
+    }
+
+    /* Canvas / Plane */
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-height: 520px;
+      background: #ffffff;
+      border: 2px solid #000000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Slider / Middle Section */
+    .slider-section {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .scale-display {
+      color: #15803d;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #15803d;
+      cursor: pointer;
+    }
+
+    .readout {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      padding-top: 0.35rem;
+      border-top: 1px dashed var(--border);
+    }
+
+    /* Ray Comparison Box */
+    .comparison-section {
+      background: #eff6ff;
+      border: 1.5px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .comparison-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #1e40af;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.6rem;
+      font-size: 0.92rem;
+      color: #1e3a8a;
+    }
+
+    .stat-pill {
+      background: #ffffff;
+      border: 1px solid #dbeafe;
+      border-radius: 6px;
+      padding: 0.4rem 0.6rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="widget-container">
+    <div class="header-bar">
+      <h1>Dilation Explorer</h1>
+      <span class="standard-tag">Iowa 8.G.A.3</span>
+    </div>
+
+    <!-- Top: Shape Selector -->
+    <div class="button-group">
+      <button class="btn active" onclick="setShape('point')">Point</button>
+      <button class="btn" onclick="setShape('segment')">Line Segment</button>
+      <button class="btn" onclick="setShape('quad')">Quadrilateral</button>
+    </div>
+
+    <!-- Middle: Cartesian Grid -->
+    <div class="canvas-wrapper">
+      <svg id="gridSvg">
+        <g id="gridGroup"></g>
+        <g id="rayGroup"></g>
+        <g id="shapeGroup"></g>
+        <g id="centerGroup"></g>
+      </svg>
+    </div>
+
+    <!-- Center of Dilation Selector -->
+    <div class="button-group">
+      <button class="btn btn-center active" onclick="setCenter('origin')">Origin (0, 0)</button>
+      <button class="btn btn-center" onclick="setCenter('quad1')">Quad I (3, 3)</button>
+      <button class="btn btn-center" onclick="setCenter('quad2')">Quad II (-3, 3)</button>
+      <button class="btn btn-center" onclick="setCenter('quad3')">Quad III (-3, -3)</button>
+      <button class="btn btn-center" onclick="setCenter('quad4')">Quad IV (3, -3)</button>
+    </div>
+
+    <!-- Scale Factor Slider & Controls -->
+    <div class="slider-section">
+      <div class="slider-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span>Scale Factor (k):</span>
+          <span class="scale-display" id="scaleValueText">1.0</span>
+        </div>
+        <button class="btn-reset" onclick="resetScale()" title="Reset scale factor to 1">Reset (k = 1)</button>
+      </div>
+      <input 
+        type="range" 
+        id="scaleSlider" 
+        min="0.25" 
+        max="5" 
+        step="0.25" 
+        value="1" 
+        oninput="updateScale(this.value)"
+      />
+      <div class="readout" id="coordReadout"></div>
+    </div>
+
+    <!-- Bottom: Ray Length Comparison -->
+    <div class="comparison-section">
+      <span class="comparison-title">Ray Length &amp; Scale Factor Relationship (Point A)</span>
+      <div class="comparison-grid">
+        <div class="stat-pill" id="distPre">Pre-image ray (CA): —</div>
+        <div class="stat-pill" id="distImg">Dilated ray (CA'): —</div>
+        <div class="stat-pill" id="distRatio">Ratio (CA' / CA): —</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentShape = 'point';
+    let currentCenterName = 'origin';
+    let k = 1.0;
+
+    const centers = {
+      origin: { x: 0, y: 0, label: "(0, 0)" },
+      quad1: { x: 3, y: 3, label: "(3, 3)" },
+      quad2: { x: -3, y: 3, label: "(-3, 3)" },
+      quad3: { x: -3, y: -3, label: "(-3, -3)" },
+      quad4: { x: 3, y: -3, label: "(3, -3)" }
+    };
+
+    const shapes = {
+      point: [{ x: 2, y: 2, label: "A" }],
+      segment: [
+        { x: 1, y: 1, label: "A" },
+        { x: 3, y: 4, label: "B" }
+      ],
+      quad: [
+        { x: 1, y: 1, label: "A" },
+        { x: 3, y: 1, label: "B" },
+        { x: 4, y: 3, label: "C" },
+        { x: 1, y: 3, label: "D" }
+      ]
+    };
+
+    function setShape(shape) {
+      currentShape = shape;
+      document.querySelectorAll('.btn:not(.btn-center)').forEach((b) => {
+        b.classList.toggle('active', b.textContent.toLowerCase().includes(shape.slice(0, 4)));
+      });
+      render();
+    }
+
+    function setCenter(c) {
+      currentCenterName = c;
+      const centerKeys = ['origin', 'quad1', 'quad2', 'quad3', 'quad4'];
+      document.querySelectorAll('.btn-center').forEach((b, idx) => {
+        b.classList.toggle('active', centerKeys[idx] === c);
+      });
+      render();
+    }
+
+    function updateScale(val) {
+      k = parseFloat(val);
+      const fracMap = { 0.25: "¼", 0.5: "½", 0.75: "¾" };
+      document.getElementById('scaleValueText').innerText = fracMap[k] ? `${fracMap[k]} (${k})` : k.toFixed(2);
+      render();
+    }
+
+    function resetScale() {
+      document.getElementById('scaleSlider').value = 1;
+      updateScale(1);
+    }
+
+    function getDistance(p1, p2) {
+      return Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    }
+
+    function render() {
+      const center = centers[currentCenterName];
+      const prePts = shapes[currentShape];
+
+      // Dilation formula: C + (P - C) * k
+      const imgPts = prePts.map(pt => ({
+        x: center.x + (pt.x - center.x) * k,
+        y: center.y + (pt.y - center.y) * k,
+        label: pt.label + "'"
+      }));
+
+      // Calculate dynamic viewport bounds
+      const allPoints = [...prePts, ...imgPts, center];
+      let maxCoord = 0;
+      allPoints.forEach(p => {
+        maxCoord = Math.max(maxCoord, Math.abs(p.x), Math.abs(p.y));
+      });
+
+      // Zooms in when k < 1 down to bounds of ±5; otherwise defaults to minimum ±10
+      const minBound = (k < 1) ? 5 : 10;
+      const bound = Math.max(minBound, Math.ceil(maxCoord * 1.3));
+      
+      const svg = document.getElementById('gridSvg');
+      svg.setAttribute('viewBox', `${-bound} ${-bound} ${2 * bound} ${2 * bound}`);
+
+      // Dynamic unit scaling for strokes & font
+      const unitScale = bound / 12;
+      const thinStroke = 0.05 * unitScale;
+      const thickStroke = 0.16 * unitScale;
+      const fontSize = 0.55 * unitScale;
+
+      // Label every 1 unit when zoomed in close (bound <= 6); otherwise label evens (2s)
+      const labelStep = (bound <= 6) ? 1 : 2;
+
+      // 1. Grid Lines by 1s (gray #cbd5e1) and Axes/Labels (black #000000)
+      const g = document.getElementById('gridGroup');
+      let gridHtml = '';
+
+      for (let i = -bound; i <= bound; i += 1) {
+        if (i === 0) continue;
+        gridHtml += `<line x1="${i}" y1="${-bound}" x2="${i}" y2="${bound}" stroke="#cbd5e1" stroke-width="${thinStroke}"/>`;
+        gridHtml += `<line x1="${-bound}" y1="${i}" x2="${bound}" y2="${i}" stroke="#cbd5e1" stroke-width="${thinStroke}"/>`;
+      }
+
+      // Bold black X and Y Axes
+      gridHtml += `<line x1="${-bound}" y1="0" x2="${bound}" y2="0" stroke="#000000" stroke-width="${thickStroke}"/>`;
+      gridHtml += `<line x1="0" y1="${-bound}" x2="0" y2="${bound}" stroke="#000000" stroke-width="${thickStroke}"/>`;
+
+      // Bold black tick labels
+      for (let i = -bound; i <= bound; i += labelStep) {
+        if (i !== 0 && Math.abs(i) <= bound - 1) {
+          gridHtml += `<text x="${i}" y="${fontSize * 1.4}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#000000">${i}</text>`;
+          gridHtml += `<text x="${-fontSize * 0.5}" y="${-i + fontSize * 0.35}" font-size="${fontSize}" font-weight="700" text-anchor="end" fill="#000000">${i}</text>`;
+        }
+      }
+      g.innerHTML = gridHtml;
+
+      // 2. Projection Rays
+      const rayGroup = document.getElementById('rayGroup');
+      let rayHtml = '';
+      imgPts.forEach((imgPt) => {
+        rayHtml += `<line x1="${center.x}" y1="${-center.y}" x2="${imgPt.x}" y2="${-imgPt.y}" stroke="#94a3b8" stroke-dasharray="${0.3 * unitScale},${0.3 * unitScale}" stroke-width="${0.09 * unitScale}"/>`;
+      });
+      rayGroup.innerHTML = rayHtml;
+
+      // 3. Pre-image & Dilated Image
+      const shapeGroup = document.getElementById('shapeGroup');
+      let sHtml = '';
+      const dotR = 0.28 * unitScale;
+
+      if (currentShape === 'point') {
+        const p = prePts[0];
+        const im = imgPts[0];
+        sHtml += `<circle cx="${p.x}" cy="${-p.y}" r="${dotR}" fill="#0284c7"/>`;
+        sHtml += `<circle cx="${im.x}" cy="${-im.y}" r="${dotR * 1.1}" fill="#6366f1"/>`;
+        sHtml += `<text x="${p.x + fontSize * 0.4}" y="${-p.y - fontSize * 0.4}" font-size="${fontSize * 1.2}" font-weight="700" fill="#0284c7">A</text>`;
+        sHtml += `<text x="${im.x + fontSize * 0.4}" y="${-im.y - fontSize * 0.4}" font-size="${fontSize * 1.2}" font-weight="700" fill="#6366f1">A'</text>`;
+      } else if (currentShape === 'segment') {
+        sHtml += `<line x1="${prePts[0].x}" y1="${-prePts[0].y}" x2="${prePts[1].x}" y2="${-prePts[1].y}" stroke="#0284c7" stroke-width="${0.16 * unitScale}" stroke-dasharray="${0.3 * unitScale},${0.2 * unitScale}"/>`;
+        sHtml += `<line x1="${imgPts[0].x}" y1="${-imgPts[0].y}" x2="${imgPts[1].x}" y2="${-imgPts[1].y}" stroke="#6366f1" stroke-width="${0.22 * unitScale}"/>`;
+        prePts.forEach(p => {
+          sHtml += `<circle cx="${p.x}" cy="${-p.y}" r="${dotR * 0.8}" fill="#0284c7"/>`;
+          sHtml += `<text x="${p.x + fontSize * 0.4}" y="${-p.y - fontSize * 0.4}" font-size="${fontSize}" font-weight="700" fill="#0284c7">${p.label}</text>`;
+        });
+        imgPts.forEach(p => {
+          sHtml += `<circle cx="${p.x}" cy="${-p.y}" r="${dotR * 0.9}" fill="#6366f1"/>`;
+          sHtml += `<text x="${p.x + fontSize * 0.4}" y="${-p.y - fontSize * 0.4}" font-size="${fontSize}" font-weight="700" fill="#6366f1">${p.label}</text>`;
+        });
+      } else {
+        const prePoly = prePts.map(p => `${p.x},${-p.y}`).join(' ');
+        const imgPoly = imgPts.map(p => `${p.x},${-p.y}`).join(' ');
+
+        sHtml += `<polygon points="${prePoly}" fill="rgba(2, 132, 199, 0.15)" stroke="#0284c7" stroke-dasharray="${0.3 * unitScale},${0.2 * unitScale}" stroke-width="${0.14 * unitScale}"/>`;
+        sHtml += `<polygon points="${imgPoly}" fill="rgba(99, 102, 241, 0.25)" stroke="#6366f1" stroke-width="${0.2 * unitScale}"/>`;
+
+        prePts.forEach(p => {
+          sHtml += `<circle cx="${p.x}" cy="${-p.y}" r="${dotR * 0.7}" fill="#0284c7"/>`;
+          sHtml += `<text x="${p.x + fontSize * 0.35}" y="${-p.y - fontSize * 0.35}" font-size="${fontSize}" fill="#0284c7">${p.label}</text>`;
+        });
+        imgPts.forEach(p => {
+          sHtml += `<circle cx="${p.x}" cy="${-p.y}" r="${dotR * 0.8}" fill="#6366f1"/>`;
+          sHtml += `<text x="${p.x + fontSize * 0.35}" y="${-p.y - fontSize * 0.35}" font-size="${fontSize}" font-weight="700" fill="#6366f1">${p.label}</text>`;
+        });
+      }
+      shapeGroup.innerHTML = sHtml;
+
+      // 4. Center Marker
+      const centerGroup = document.getElementById('centerGroup');
+      centerGroup.innerHTML = `
+        <circle cx="${center.x}" cy="${-center.y}" r="${dotR * 1.1}" fill="#eab308" stroke="#000000" stroke-width="${0.08 * unitScale}"/>
+        <text x="${center.x}" y="${-center.y + fontSize * 1.5}" font-size="${fontSize * 1.1}" font-weight="bold" text-anchor="middle" fill="#000000">C</text>
+      `;
+
+      // 5. Update Coordinates Readout
+      let readoutText = `<strong>Center C:</strong> ${center.label} &nbsp;|&nbsp; `;
+      prePts.forEach((p, i) => {
+        const im = imgPts[i];
+        readoutText += `<span><strong>${p.label}</strong>(${p.x}, ${p.y}) &rarr; <strong>${im.label}</strong>(${im.x.toFixed(1)}, ${im.y.toFixed(1)})</span> `;
+      });
+      document.getElementById('coordReadout').innerHTML = readoutText;
+
+      // 6. Ray Length Comparison Calculation (Center to Point A)
+      const distCA = getDistance(center, prePts[0]);
+      const distCAprime = getDistance(center, imgPts[0]);
+      const ratio = distCA === 0 ? 0 : (distCAprime / distCA);
+
+      document.getElementById('distPre').innerHTML = `Pre-image ray <strong>CA</strong> = <strong>${distCA.toFixed(2)}</strong> units`;
+      document.getElementById('distImg').innerHTML = `Dilated ray <strong>CA'</strong> = <strong>${distCAprime.toFixed(2)}</strong> units`;
+      document.getElementById('distRatio').innerHTML = `Ratio <strong>CA' / CA</strong> = <strong>${ratio.toFixed(2)}</strong> (equals <strong>k</strong>)`;
+    }
+
+    render();
+  </script>
+</body>
+</html>
