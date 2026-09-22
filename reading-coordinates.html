@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reading Coordinates</title>
+<style>
+  /* ---- tokens: light default, auto-dark for night work ---- */
+  :root{
+    --bg:#ffffff; --panel:#f1f5f9; --line:#cbd5e1;
+    --ink:#0f172a; --ink-soft:#475569; --ink-faint:#64748b;
+    --grid:rgba(100,116,139,.25);
+    --accent:#0369a1; --accent-2:#047857; --accent-3:#be123c;
+    --accent-fill:rgba(3,105,161,.15);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f172a; --panel:#1e293b; --line:#334155;
+      --ink:#f1f5f9; --ink-soft:#cbd5e1; --ink-faint:#94a3b8;
+      --grid:rgba(148,163,184,.22);
+      --accent:#38bdf8; --accent-2:#34d399; --accent-3:#fb7185;
+      --accent-fill:rgba(56,189,248,.18);
+    }
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); padding:18px; min-height:100vh;
+  }
+  .wrap{max-width:1100px;margin:0 auto}
+  .back{display:inline-block;font-size:13px;font-weight:650;color:var(--accent);text-decoration:none;margin-bottom:10px}
+  .back:hover{text-decoration:underline}
+  h1{font-size:1.25rem;font-weight:650}
+  .lede{font-size:.9rem;color:var(--ink-soft);margin-top:4px;max-width:70ch;line-height:1.45}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0}
+
+  .seg{display:flex;flex-wrap:wrap;align-items:center;gap:18px}
+  .seg .nm{font-size:.85rem;font-weight:600;color:var(--ink-soft);min-width:110px}
+  .seg label.opt{display:flex;align-items:center;gap:6px;font-size:.9rem;color:var(--ink-soft);min-height:44px;cursor:pointer}
+  .seg input[type=radio]{width:20px;height:20px;accent-color:var(--accent);cursor:pointer}
+
+  .guess-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .guess-row .nm{font-size:.9rem;font-weight:650;color:var(--ink-soft)}
+  .guess-row input[type=number]{
+    width:76px;height:44px;font-size:1rem;text-align:center;
+    border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  button{font:inherit;font-size:.85rem;font-weight:650;min-height:44px;padding:0 14px;
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  #cv{width:100%;max-width:560px;aspect-ratio:1/1;display:block;margin:0 auto;
+    background:var(--bg);border:1px solid var(--line);border-radius:10px}
+  .readout{margin-top:12px;font-size:.95rem;color:var(--ink-soft);line-height:1.5;text-align:center}
+  .readout b{color:var(--ink);font-weight:650;font-variant-numeric:tabular-nums}
+  footer{margin-top:14px;font-size:.8rem;color:var(--ink-faint);line-height:1.5;max-width:80ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back" href="index.html">&larr; All tools</a>
+
+  <h1>Reading Coordinates</h1>
+  <p class="lede">A point is plotted on the coordinate plane. Read its position first, then type what you think its coordinates are.</p>
+
+  <div class="panel">
+    <div class="seg">
+      <span class="nm">Range</span>
+      <label class="opt" for="mode-q1"><input type="radio" id="mode-q1" name="mode" value="q1"> Quadrant I only</label>
+      <label class="opt" for="mode-all"><input type="radio" id="mode-all" name="mode" value="all" checked> All four quadrants</label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="guess-row">
+      <label class="nm" for="gx">x =</label>
+      <input type="number" id="gx" step="1" inputmode="numeric" required>
+      <label class="nm" for="gy">y =</label>
+      <input type="number" id="gy" step="1" inputmode="numeric" required>
+      <button id="check" class="primary">Check</button>
+      <button id="newpt">New Point</button>
+    </div>
+  </div>
+
+  <canvas id="cv" aria-label="Coordinate plane with a plotted point"></canvas>
+  <div class="readout" id="out" aria-live="polite"></div>
+
+  <footer>Reading a point means finding it two ways: how far left or right of the y-axis (x), then how far up or down from the x-axis (y).</footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ---------- state: the single source of truth ---------- */
+const S = { mode: "all", px: 0, py: 0, guessX: null, guessY: null, checked: false };
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.body).getPropertyValue(n).trim();
+const randInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+
+// Sets up the canvas at device resolution so lines are crisp on Chromebooks.
+function fit(cv){
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth || 560, h = cv.clientHeight || 560;
+  if(cv.width !== Math.round(w*dpr) || cv.height !== Math.round(h*dpr)){
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+  }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  return {ctx,w,h};
+}
+
+/* ---------- domain: drives the grid AND the input validation together ---------- */
+function domain(){
+  return S.mode === "q1"
+    ? { xMin:0, xMax:10, yMin:0, yMax:10, step:1 }
+    : { xMin:-10, xMax:10, yMin:-10, yMax:10, step:2 };
+}
+
+function syncInputRange(){
+  const d = domain();
+  $("gx").min = d.xMin; $("gx").max = d.xMax;
+  $("gy").min = d.yMin; $("gy").max = d.yMax;
+}
+
+/* ---------- new point: same S.px/S.py used by draw() and by the check ---------- */
+function newPoint(){
+  const d = domain();
+  if(S.mode === "q1"){
+    S.px = randInt(1, 10);
+    S.py = randInt(1, 10);
+  } else {
+    let x, y;
+    do{ x = randInt(-10, 10); } while(x === 0);
+    do{ y = randInt(-10, 10); } while(y === 0);
+    S.px = x; S.py = y;
+  }
+  S.checked = false; S.guessX = null; S.guessY = null;
+  $("gx").value = ""; $("gy").value = "";
+  syncInputRange();
+}
+
+/* ---------- draw ---------- */
+function draw(){
+  const {ctx,w,h} = fit($("cv"));
+  const d = domain();
+  const pad = 32;
+  const scaleX = (w - 2*pad) / (d.xMax - d.xMin);
+  const scaleY = (h - 2*pad) / (d.yMax - d.yMin);
+  const X = x => pad + (x - d.xMin) * scaleX;
+  const Y = y => h - pad - (y - d.yMin) * scaleY;
+
+  // gridlines, one per integer
+  ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+  for(let i = Math.ceil(d.xMin); i <= Math.floor(d.xMax); i++){
+    ctx.beginPath(); ctx.moveTo(X(i), Y(d.yMin)); ctx.lineTo(X(i), Y(d.yMax)); ctx.stroke();
+  }
+  for(let i = Math.ceil(d.yMin); i <= Math.floor(d.yMax); i++){
+    ctx.beginPath(); ctx.moveTo(X(d.xMin), Y(i)); ctx.lineTo(X(d.xMax), Y(i)); ctx.stroke();
+  }
+
+  // axes (x=0 / y=0 fall on the edges in Quadrant-I mode, in the middle otherwise)
+  ctx.strokeStyle = css("--ink-faint"); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(X(0), Y(d.yMin)); ctx.lineTo(X(0), Y(d.yMax)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(X(d.xMin), Y(0)); ctx.lineTo(X(d.xMax), Y(0)); ctx.stroke();
+
+  // tick labels
+  ctx.fillStyle = css("--ink-faint");
+  ctx.font = "11px -apple-system,sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for(let i = Math.ceil(d.xMin); i <= Math.floor(d.xMax); i += d.step){
+    if(i === 0 && S.mode === "all") continue;
+    ctx.fillText(String(i), X(i), Y(0) + 4);
+  }
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for(let i = Math.ceil(d.yMin); i <= Math.floor(d.yMax); i += d.step){
+    if(i === 0 && S.mode === "all") continue;
+    ctx.fillText(String(i), X(0) - 6, Y(i));
+  }
+
+  // after checking: dashed green rays from the origin — the answer always,
+  // the student's guess too when it's wrong, so both paths can be compared
+  if(S.checked){
+    const midX = (d.xMin + d.xMax) / 2;
+    const wrong = S.guessX !== S.px || S.guessY !== S.py;
+    const rayTo = (x, y, dash, width, color) => {
+      ctx.setLineDash(dash); ctx.strokeStyle = css(color); ctx.lineWidth = width;
+      ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(x), Y(0)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(X(x), Y(0)); ctx.lineTo(X(x), Y(y)); ctx.stroke();
+    };
+    if(wrong) rayTo(S.guessX, S.guessY, [2,3], 1.5, "--accent-3");  // red, short dash: the guess
+    rayTo(S.px, S.py, [7,4], 2, "--accent-2");                        // green, long dash: the answer
+    ctx.setLineDash([]);
+
+    if(wrong){
+      ctx.strokeStyle = css("--accent-3"); ctx.lineWidth = 1.5;
+      ctx.strokeRect(X(S.guessX)-6, Y(S.guessY)-6, 12, 12); // outline square = the guess
+    }
+
+    ctx.fillStyle = css("--accent-2");
+    ctx.font = "12px -apple-system,sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const xLabelPx = X(0) + 0.3 * (X(S.px) - X(0));  // nearer the origin end, away from the elbow
+    ctx.fillText(`${S.px >= 0 ? "right" : "left"} ${Math.abs(S.px)}`, xLabelPx, Y(0) + (S.py >= 0 ? -10 : 10));
+    ctx.textAlign = S.px > midX ? "right" : "left";
+    const yLabelPy = Y(0) + 0.7 * (Y(S.py) - Y(0));  // nearer the point end, away from the elbow
+    ctx.fillText(`${S.py >= 0 ? "up" : "down"} ${Math.abs(S.py)}`, X(S.px) + (S.px > midX ? -10 : 10), yLabelPy);
+  }
+
+  // the plotted point — always visible, this is what the student reads (filled circle,
+  // distinct from the guess's outline square above)
+  ctx.fillStyle = css("--accent-2");
+  ctx.beginPath(); ctx.arc(X(S.px), Y(S.py), 7, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+/* ---------- render: text derived from the SAME state as the drawing ---------- */
+function render(){
+  draw();
+  const out = $("out");
+  if(!S.checked){
+    out.innerHTML = "Type the coordinates of the point, then press Check.";
+    return;
+  }
+  const correctX = S.guessX === S.px, correctY = S.guessY === S.py;
+  if(correctX && correctY){
+    out.innerHTML = `Correct! The point is (<b>${S.px}</b>, <b>${S.py}</b>).`;
+  } else {
+    const bits = [];
+    if(!correctX) bits.push(`x should be <b>${S.px}</b> (you had <b>${S.guessX}</b>)`);
+    if(!correctY) bits.push(`y should be <b>${S.py}</b> (you had <b>${S.guessY}</b>)`);
+    out.innerHTML = `Not quite — the point is (<b>${S.px}</b>, <b>${S.py}</b>). ${bits.join(" and ")}.`;
+  }
+}
+
+/* ---------- wire up ---------- */
+$("mode-q1").addEventListener("change", () => { if($("mode-q1").checked){ S.mode="q1"; newPoint(); render(); } });
+$("mode-all").addEventListener("change", () => { if($("mode-all").checked){ S.mode="all"; newPoint(); render(); } });
+
+$("check").addEventListener("click", () => {
+  const gxEl = $("gx"), gyEl = $("gy");
+  if(!gxEl.reportValidity() || !gyEl.reportValidity()) return; // native message for blank/out-of-range
+  S.guessX = parseInt(gxEl.value, 10);
+  S.guessY = parseInt(gyEl.value, 10);
+  S.checked = true;
+  render();
+});
+
+$("newpt").addEventListener("click", () => { newPoint(); render(); });
+
+window.addEventListener("resize", render);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+newPoint();
+render();
+</script>
+</body>
+</html>
