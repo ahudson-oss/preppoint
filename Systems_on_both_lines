@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Is It on Both Lines?</title>
+<style>
+  /* ---- tokens: light default, auto-dark for night work ---- */
+  :root{
+    --bg:#ffffff; --panel:#f1f5f9; --line:#cbd5e1;
+    --ink:#0f172a; --ink-soft:#475569; --ink-faint:#64748b;
+    --grid:rgba(100,116,139,.25);
+    --accent:#0369a1; --accent-2:#047857; --accent-3:#be123c;
+    --accent-fill:rgba(3,105,161,.15);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f172a; --panel:#1e293b; --line:#334155;
+      --ink:#f1f5f9; --ink-soft:#cbd5e1; --ink-faint:#94a3b8;
+      --grid:rgba(148,163,184,.22);
+      --accent:#38bdf8; --accent-2:#34d399; --accent-3:#fb7185;
+      --accent-fill:rgba(56,189,248,.18);
+    }
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); padding:18px; min-height:100vh;
+  }
+  .wrap{max-width:1100px;margin:0 auto}
+  .back{display:inline-block;font-size:13px;font-weight:650;color:var(--accent);text-decoration:none;margin-bottom:10px}
+  .back:hover{text-decoration:underline}
+  h1{font-size:1.25rem;font-weight:650}
+  .lede{font-size:.95rem;color:var(--ink-soft);margin-top:4px;max-width:75ch;line-height:1.45}
+
+  /* graph left, controls + checks right; stacks on narrow screens */
+  .main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;margin-top:14px;align-items:start}
+  @media (max-width:860px){ .main{grid-template-columns:1fr} }
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+  .eq{font-size:1rem;font-weight:700;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+  .eq.a{color:var(--accent)} .eq.b{color:var(--accent-3)}
+  .eq small{font-weight:600;color:var(--ink-faint);font-size:13px}
+  .row{display:grid;grid-template-columns:90px 1fr 44px;align-items:center;gap:10px}
+  .row .nm{font-size:.85rem;font-weight:600;color:var(--ink-soft)}
+  .row .val{font-size:.95rem;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;height:44px;cursor:pointer;accent-color:var(--accent)}
+  input.b[type=range]{accent-color:var(--accent-3)}
+  hr{border:0;border-top:1px solid var(--line);margin:8px 0}
+  button{font:inherit;font-size:.85rem;font-weight:650;min-height:44px;padding:0 14px;margin-top:8px;
+    background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+
+  canvas{width:100%;max-width:min(100%,72vh);aspect-ratio:1/1;display:block;margin:0 auto;
+    background:var(--bg);border:1px solid var(--line);border-radius:10px;touch-action:none;cursor:crosshair}
+  canvas:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+  .checks{margin-top:12px;font-size:15px;line-height:1.5}
+  .dot{font-size:1.05rem;font-weight:700;font-variant-numeric:tabular-nums;margin-bottom:6px}
+  .chk{border-left:5px solid var(--line);padding:6px 10px;margin:6px 0;background:var(--panel);border-radius:0 8px 8px 0;font-variant-numeric:tabular-nums}
+  .chk.ok{border-left-color:var(--accent-2)}
+  .chk.no{border-left-color:var(--ink-faint);border-left-style:dashed}
+  .chk b{font-weight:700}
+  .chk .ok-t{color:var(--accent-2)}
+  .verdict{font-weight:650;margin-top:8px}
+  .note{margin-top:8px;font-size:13px;color:var(--ink-soft);font-style:italic}
+  footer{margin-top:14px;font-size:.85rem;color:var(--ink-faint);line-height:1.5;max-width:80ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back" href="index.html">&larr; All tools</a>
+
+  <h1>Is It on Both Lines?</h1>
+  <p class="lede">Drag the dot and watch both checks. Can you find a point that makes <em>both</em> equations true? Then try to make that impossible, or make it happen everywhere.</p>
+
+  <div class="main">
+    <canvas id="cv" tabindex="0"
+      aria-label="Graph of two lines with a draggable dot. Click or tap to move the dot, or use the arrow keys."></canvas>
+
+    <div>
+      <div class="panel">
+        <div class="eq a" id="eqA"></div>
+        <div class="row">
+          <label class="nm" for="mA">Slope A</label>
+          <input type="range" id="mA" min="-4" max="4" step="1">
+          <span class="val" id="vmA"></span>
+        </div>
+        <div class="row">
+          <label class="nm" for="bA">Intercept A</label>
+          <input type="range" id="bA" min="-9" max="9" step="1">
+          <span class="val" id="vbA"></span>
+        </div>
+        <hr>
+        <div class="eq b" id="eqB"></div>
+        <div class="row">
+          <label class="nm" for="mB">Slope B</label>
+          <input class="b" type="range" id="mB" min="-4" max="4" step="1">
+          <span class="val" id="vmB"></span>
+        </div>
+        <div class="row">
+          <label class="nm" for="bB">Intercept B</label>
+          <input class="b" type="range" id="bB" min="-9" max="9" step="1">
+          <span class="val" id="vbB"></span>
+        </div>
+        <button id="reset">Reset</button>
+      </div>
+
+      <div class="checks" id="out" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <footer>A solution to a system has to make both equations true, so it has to sit on both lines at once. Look at the slopes and intercepts each time you found one solution, no solution, or a solution everywhere.</footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ---------- state: the single source of truth ---------- */
+// Default is the C1 system: y = 2x − 5 and x + y = 7 (y = −x + 7).
+// Dot starts at (3, 1): on line A, not on line B.
+const START = { mA:2, bA:-5, mB:-1, bB:7, px:3, py:1 };
+const S = { ...START };
+const R = 10;                       // grid runs −10..10 on both axes (equal scale, so slopes look true)
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const css = n => getComputedStyle(document.body).getPropertyValue(n).trim();
+const MINUS = "−";
+const num = n => n < 0 ? MINUS + Math.abs(n) : String(n);
+
+// "y = 2x − 5", "y = −x", "y = 4"
+function eqText(m,b){
+  let t = m === 0 ? "" : m === 1 ? "x" : m === -1 ? MINUS + "x" : num(m) + "x";
+  if(t === "") return "y = " + num(b);
+  if(b > 0) t += " + " + b;
+  if(b < 0) t += " " + MINUS + " " + Math.abs(b);
+  return "y = " + t;
+}
+
+// The right side with x replaced: "2(3) − 5", "−(−2) + 1", "4"
+function subText(m,b,x){
+  if(m === 0) return num(b);
+  const xp = "(" + num(x) + ")";
+  let t = m === 1 ? xp : m === -1 ? MINUS + xp : num(m) + xp;
+  if(b > 0) t += " + " + b;
+  if(b < 0) t += " " + MINUS + " " + Math.abs(b);
+  return t;
+}
+
+const onLine = (m,b,x,y) => m*x + b === y;   // integers only, so === is exact
+
+function fit(cv){
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth || 600, h = cv.clientHeight || 600;
+  if(cv.width !== Math.round(w*dpr) || cv.height !== Math.round(h*dpr)){
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+  }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  return {ctx,w,h};
+}
+
+// graph units -> pixels (a half-unit margin so edge labels fit)
+let W = 600, H = 600;
+const SPAN = 2*R + 1;
+const X = x => (x + R + 0.5) / SPAN * W;
+const Y = y => (R + 0.5 - y) / SPAN * H;
+const toGraph = (px,py) => [ (px / W) * SPAN - R - 0.5, R + 0.5 - (py / H) * SPAN ];
+
+/* ---------- draw ---------- */
+function drawLine(ctx, m, b, color, dash, label, labelSide){
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = 3.5; ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(X(-R-1), Y(m*(-R-1) + b));
+  ctx.lineTo(X(R+1),  Y(m*(R+1) + b));
+  ctx.stroke();
+  ctx.restore();
+
+  // Label near one end, at the first x (walking inward) where the line is on the grid.
+  const step = labelSide === "right" ? -0.5 : 0.5;
+  for(let x = labelSide === "right" ? R - 0.8 : -R + 0.8; Math.abs(x) <= R; x += step){
+    const y = m*x + b;
+    if(y > -R + 0.8 && y < R - 0.8){
+      const lx = X(x), ly = Y(y);
+      ctx.fillStyle = css("--bg"); ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(lx, ly, 13, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = color; ctx.font = "bold 15px system-ui,sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(label, lx, ly + 1);
+      break;
+    }
+  }
+}
+
+function draw(){
+  const cv = $("cv");
+  const f = fit(cv); const ctx = f.ctx; W = f.w; H = f.h;
+
+  // grid
+  ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+  for(let i = -R; i <= R; i++){
+    ctx.beginPath(); ctx.moveTo(X(i), Y(R)); ctx.lineTo(X(i), Y(-R)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(-R), Y(i)); ctx.lineTo(X(R), Y(i)); ctx.stroke();
+  }
+  // axes
+  ctx.strokeStyle = css("--ink-faint"); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(X(0), Y(R)); ctx.lineTo(X(0), Y(-R)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(X(-R), Y(0)); ctx.lineTo(X(R), Y(0)); ctx.stroke();
+  // axis numbers every 2
+  ctx.fillStyle = css("--ink-faint"); ctx.font = "13px system-ui,sans-serif";
+  for(let i = -R; i <= R; i += 2){
+    if(i === 0) continue;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText(num(i), X(i), Y(0) + 4);
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.fillText(num(i), X(0) - 5, Y(i));
+  }
+
+  // lines: A solid blue, B dashed red, so they're distinct without color (and both show when identical)
+  ctx.save();
+  ctx.beginPath(); ctx.rect(X(-R), Y(R), X(R) - X(-R), Y(-R) - Y(R)); ctx.clip();
+  drawLine(ctx, S.mA, S.bA, css("--accent"),   [],      "A", "right");
+  drawLine(ctx, S.mB, S.bB, css("--accent-3"), [12, 8], "B", "left");
+  ctx.restore();
+
+  // the dot — ring for each line it's on
+  const dx = X(S.px), dy = Y(S.py);
+  const a = onLine(S.mA,S.bA,S.px,S.py), b = onLine(S.mB,S.bB,S.px,S.py);
+  if(a){ ctx.strokeStyle = css("--accent");   ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(dx,dy,15,0,Math.PI*2); ctx.stroke(); }
+  if(b){ ctx.strokeStyle = css("--accent-3"); ctx.lineWidth = 3; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.arc(dx,dy,21,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.fillStyle = css("--ink");
+  ctx.beginPath(); ctx.arc(dx, dy, 8, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = css("--bg"); ctx.lineWidth = 2; ctx.stroke();
+}
+
+/* ---------- render: every check computed from the same S that draws the picture ---------- */
+function checkHTML(name, m, b){
+  const v = m*S.px + b, ok = v === S.py;
+  return `<div class="chk ${ok ? "ok" : "no"}">
+    <b>Line ${name}:</b> ${eqText(m,b)}<br>
+    Plug in x = ${num(S.px)}: &nbsp;${subText(m,b,S.px)} = ${num(v)}<br>
+    The dot's y is ${num(S.py)}. &nbsp;${ok
+      ? `<b class="ok-t">${num(v)} = ${num(S.py)} &#10003; on line ${name}</b>`
+      : `<b>${num(v)} &ne; ${num(S.py)} &#10007; not on line ${name}</b>`}
+  </div>`;
+}
+
+function render(){
+  for(const k of ["mA","bA","mB","bB"]){ $(k).value = S[k]; $("v"+k).textContent = num(S[k]); }
+  $("eqA").innerHTML = `Line A: ${eqText(S.mA,S.bA)} <small>(solid)</small>`;
+  $("eqB").innerHTML = `Line B: ${eqText(S.mB,S.bB)} <small>(dashed)</small>`;
+  draw();
+
+  const pt = `(${num(S.px)}, ${num(S.py)})`;
+  const a = onLine(S.mA,S.bA,S.px,S.py), b = onLine(S.mB,S.bB,S.px,S.py);
+  let verdict;
+  if(a && b)      verdict = `Both checks pass. ${pt} makes both equations true, so it is a solution to the system.`;
+  else if(a || b) verdict = `Only one check passes, so ${pt} is <em>not</em> a solution to the system.`;
+  else            verdict = `Neither check passes.`;
+
+  // Honest-input note: the dot snaps to whole numbers, so say so when the crossing can't be reached.
+  let note = "";
+  if(S.mA !== S.mB){
+    const x = (S.bB - S.bA) / (S.mA - S.mB), y = S.mA*x + S.bA;
+    if(!Number.isInteger(x))
+      note = "These lines do cross, but not at a whole-number point, so the dot can't land exactly on the crossing. Change a slider to get one you can reach.";
+    else if(Math.abs(x) > R || Math.abs(y) > R)
+      note = "These lines cross somewhere off the edge of this grid.";
+  }
+
+  $("out").innerHTML =
+    `<div class="dot">Dot: ${pt}</div>` +
+    checkHTML("A", S.mA, S.bA) + checkHTML("B", S.mB, S.bB) +
+    `<div class="verdict">${verdict}</div>` +
+    (note ? `<div class="note">${note}</div>` : "");
+}
+
+/* ---------- wire up ---------- */
+for(const k of ["mA","bA","mB","bB"]){
+  $(k).addEventListener("input", e => { S[k] = +e.target.value; render(); });
+}
+$("reset").addEventListener("click", () => { Object.assign(S, START); render(); });
+
+// Drag: the dot jumps to the nearest grid point under the pointer and follows while held.
+const cv = $("cv");
+let dragging = false;
+function moveTo(e){
+  const r = cv.getBoundingClientRect();
+  const [gx, gy] = toGraph(e.clientX - r.left, e.clientY - r.top);
+  const nx = clamp(Math.round(gx), -R, R), ny = clamp(Math.round(gy), -R, R);
+  if(nx !== S.px || ny !== S.py){ S.px = nx; S.py = ny; render(); }
+}
+cv.addEventListener("pointerdown", e => { dragging = true; cv.setPointerCapture(e.pointerId); moveTo(e); });
+cv.addEventListener("pointermove", e => { if(dragging) moveTo(e); });
+cv.addEventListener("pointerup",     () => { dragging = false; });
+cv.addEventListener("pointercancel", () => { dragging = false; });
+
+// Keyboard: arrow keys move the dot one unit.
+cv.addEventListener("keydown", e => {
+  const d = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,1], ArrowDown:[0,-1]}[e.key];
+  if(!d) return;
+  e.preventDefault();
+  S.px = clamp(S.px + d[0], -R, R); S.py = clamp(S.py + d[1], -R, R); render();
+});
+
+window.addEventListener("resize", render);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+render();
+</script>
+</body>
+</html>
